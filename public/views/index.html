@@ -1,0 +1,204 @@
+<div class="container" ng-controller="kibanaLogger">
+  <tabset justified="true">
+    <tab heading="Borwser" select="loadBrowse()">
+
+      <div ng-controller="kibanaLoggerBrowser">
+
+
+        <!-- Header -->
+        <div class="col-sm-12" style="margin-bottom: 3ex;">
+
+          <div class="col-sm-3">
+            <img kbn-src="/plugins/kibana_logger/logo.svg" src="/plugins/kibana_logger/logo.svg" width="70px">
+          </div>
+
+          <div class="col-sm-6">
+
+          </div>
+
+          <div class="col-sm-3 text-right">
+          </div>
+        </div>
+
+        <div class="col-sm-12" style="margin-bottom: 3ex;">
+
+          <div class="col-sm-2">
+            <div class="form-inline">
+              <div class="form-group row text-center">
+                <label class="col-sm-3 control-label">Sort:</label>
+                <div class="col-sm-9">
+                  <select class="form-control" ng-options="sort as sort.name for sort in sortTypes"
+                          ng-model="pagination.sortType" style="width: auto">
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-1">
+            <button type="button" class="btn btn-primary" data-toggle="button" ng-class="{active: wrap}"
+                    ng-click="toogleWrap()">
+              Wrap
+            </button>
+          </div>
+
+          <div class="col-sm-4">
+            <div class="form-group row text-center">
+            <label class="col-sm-3 control-label">Page Size:</label>
+            <div class="col-sm-9">
+              <rzslider rz-slider-model="pagination.pageSize" rz-slider-options="sliderPageSize"></rzslider>
+            </div>
+          </div>
+
+          </div>
+
+          <div class="col-sm-5 text-right">
+            <pagination-logger items-per-page="1" total-items="pagination.total"
+                        ng-model="pagination.line" max-size="pagination.maxSize" class="pagination-sm"
+                        boundary-links="true" ng-change="loadMore()"></pagination-logger>
+          </div>
+        </div>
+
+        <!-- Log Lines -->
+        <div class="col-sm-11 log-container" style="margin-bottom: 3ex;">
+
+            <div class="log-line-container col-sm-12">
+              <div ng-repeat="entry in buffer track by entry.id" class="log-line" ng-class="{current: entry.active}" ng-show="entry.message">
+                <span class="timestamp" ng-bind="entry.id"></span>
+                <span class="timestamp" ng-bind="entry.timestamp"></span>
+                <span class="timestamp" ng-bind="entry.log_time"></span>
+                <span class="host" ng-bind="entry.host"></span>
+                <span class="log" ng-bind="entry.message"></span>
+              </div>
+            </div>
+
+          <div class="form-inline col-sm-12">
+            <div class="form-group col-sm-6 text-center">
+              <label for="fileName" class="col-sm-3 control-label">Find in File:</label>
+              <div class="input-group col-sm-9">
+                <input type="text" name="fileName" class="form-control"
+                       placeholder="Enter name (wildcards OK)" ng-model="filterFile"/>
+                <span class="input-group-btn text-left">
+                  <button class="btn btn-primary">
+                    <span class="glyphicon glyphicon-chevron-up"></span>
+                  </button>
+                  <button class="btn btn-primary">
+                    <span class="glyphicon glyphicon-chevron-down"></span>
+                  </button>
+                </span>
+              </div>
+            </div>
+            <div class="checkbox col-sm-6 text-right">
+              <label>
+                <input type="checkbox" ng-model="onlyMatchLines"> Only Lines that match
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="col-sm-1 log-container-slider">
+          <rzslider rz-slider-model="pagination.line" rz-slider-options="sliderLines"></rzslider>
+        </div>
+      </div>
+
+    </tab>
+
+    <tab heading="Settings" active="true">
+
+      <div ng-controller="kibanaLoggerSetting">
+
+        <!-- Header -->
+        <div class="col-sm-12" style="margin-bottom: 3ex;">
+
+          <div class="col-sm-3">
+            <img kbn-src="/plugins/kibana_logger/logo.svg" src="/plugins/kibana_logger/logo.svg" width="70px">
+          </div>
+
+          <div class="col-sm-6">
+          </div>
+
+          <div class="col-sm-3">
+            <div class="form-group col-sm-12 text-right">
+              <select class="form-control" ng-options="day as day.name for day in timeRanges"
+                      ng-model="options.time">
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Choose Hosts -->
+        <div class="col-sm-12 bordered" style="margin-bottom: 3ex;">
+
+          <div class="row table-header padded">
+            <label>Choose Hosts:</label>
+          </div>
+
+          <div class="row padded">
+            <form name="indexForm">
+              <div class="row text-center">
+                <label class="radio-inline" ng-repeat="index in indices">
+                  <input name="indexSelected" type="radio" ng-value="index" ng-model="options.index" ng-change="getServers()"> <span
+                  ng-bind="index.name"></span>
+                </label>
+              </div>
+            </form>
+          </div>
+
+          <div class="row padded border-bottom">
+            <div class="form-inline">
+              <div class="form-group col-sm-6 text-center">
+                <label for="serverType" class="control-label col-sm-3">Server Type:</label>
+                <div class="col-sm-9">
+                  <select name="serverType" id="serverType" class="form-control"
+                          ng-options="type as type.name for type in serverTypes" ng-model="options.serverType"></select>
+                </div>
+              </div>
+              <div class="form-group col-sm-6 text-center">
+                <label for="serverName" class="control-label col-sm-3">Server Name:</label>
+                <div class="col-sm-9">
+                  <input type="text" name="serverName" id="serverName" class="form-control"
+                         placeholder="Enter name (wildcards OK)" ng-model="filterServer"/>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="row item-container">
+            <item class="col-md-3 no-padding" ng-repeat="server in serverList | fltrSearch:'name':filterServer"
+                  item="server" list="options.servers"></item>
+          </div>
+        </div>
+
+        <!-- Choose Files -->
+        <div class="col-sm-12 bordered" style="margin-bottom: 3ex;">
+          <div class="row table-header padded">
+            <label>Choose Files:</label>
+          </div>
+          <div class="row border-bottom padded">
+            <div class="form-inline">
+              <div class="form-group col-sm-6 text-center">
+                <label for="fileName" class="col-sm-3 control-label">File Name:</label>
+                <div class="col-sm-9">
+                  <input type="text" name="fileName" id="fileName" class="form-control"
+                         placeholder="Enter name (wildcards OK)" ng-model="filterFile"/>
+                </div>
+              </div>
+              <div class="form-group col-sm-6 text-right">
+                <button class="btn btn-primary">Browse</button>
+              </div>
+            </div>
+          </div>
+          <div class="row item-container">
+            <item class="col-sm-3 no-padding" ng-repeat="file in fileList | fltrSearch:'name':filterFile" item="file"
+                  list="options.files"></item>
+          </div>
+        </div>
+      </div>
+
+
+    </tab>
+  </tabset>
+</div>
+

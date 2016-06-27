@@ -1,0 +1,26 @@
+{
+  "name": "kibana_logger",
+  "version": "0.0.0",
+  "description": "kibana-logger",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint",
+    "start": "plugin-helpers start",
+    "test:server": "plugin-helpers test_server",
+    "test:browser": "plugin-helpers test_browser",
+    "build": "plugin-helpers build",
+    "postinstall": "plugin-helpers postinstall"
+  },
+  "devDependencies": {
+    "@elastic/eslint-config-kibana": "0.0.2",
+    "eslint": "^1.7.3",
+    "eslint-config-airbnb": "^0.1.0",
+    "eslint-plugin-react": "^3.6.3",
+    "@elastic/plugin-helpers": "^5.0.0-beta1",
+    "babel-eslint": "^4.1.6"
+  },
+  "dependencies": {
+    "lodash": "3.10.1",
+    "sync-request": "^3.0.1"
+  }
+}
