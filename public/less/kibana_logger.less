@@ -20,6 +20,12 @@
   padding: 0;
 }
 
+.wrap {
+  word-break: break-all !important;
+  word-wrap: break-word !important;
+  white-space: nowrap !important;
+}
+
 .container {
   padding-top: 2ex;
   width: 100%;
@@ -69,8 +75,6 @@
     display: block;
     padding: 0 8.5px;
     line-height: 1.42857143;
-    word-break: break-all;
-    word-wrap: break-word;
     color: #7b8a8b;
     background-color: #ecf0f1;
     border: 1px solid #cccccc;
@@ -82,7 +86,6 @@
     .log-line {
       display: block;
       width: 100%;
-      white-space: nowrap;
       border-bottom: 1px solid #a2a2a2;
 
       &.current {
@@ -91,7 +94,6 @@
 
       span {
         padding: 0 .5em;
-        border-right: solid 1px #000000;
       }
 
       .timestamp {

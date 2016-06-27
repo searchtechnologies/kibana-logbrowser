@@ -114,10 +114,6 @@ app
           });
         }
 
-        root.inMemoryEntries.position = root.inMemoryEntries.position >= root.inMemoryEntries.entries.length ? root.inMemoryEntries.entries.length - 1 : root.inMemoryEntries.position;
-        root.inMemoryEntries.position = root.inMemoryEntries.position < 0 ? 0 : root.inMemoryEntries.position;
-
-
         if (callback) {
           callback();
         }
@@ -142,7 +138,7 @@ app
         }
       } else {
 
-        var to = root.inMemoryEntries.position - reset + (reset === 0 ? 0 : root.pagination.pageSize);
+        var to = root.inMemoryEntries.position - reset;
         var from = to - root.pagination.pageSize;
         from = from < 0 ? 0 : from;
 
@@ -151,9 +147,6 @@ app
           root.inMemoryEntries.position--;
         }
       }
-
-      root.inMemoryEntries.position = root.inMemoryEntries.position >= root.inMemoryEntries.entries.length ? root.inMemoryEntries.entries.length - 1 : root.inMemoryEntries.position;
-      root.inMemoryEntries.position = root.inMemoryEntries.position < 0 ? 0 : root.inMemoryEntries.position;
 
       if (callback) {
         callback();
@@ -233,7 +226,7 @@ app
       nextPage: undefined
     };
 
-    $scope.wrap = false;
+    $scope.wrap = true;
     $scope.onlyMatchLines = false;
 
     $scope.sliderLines = {
@@ -341,10 +334,10 @@ app
       var forward = false, backward = false;
 
       if(steps > 0)
-        forward = ($scope.inMemoryEntries.position + steps + $scope.pagination.pageSize >= $scope.inMemoryEntries.entries.length);
+        forward = ($scope.inMemoryEntries.position + steps + $scope.pagination.pageSize > $scope.inMemoryEntries.entries.length) && !(currentPage === nextPage);
 
       if(steps < 0)
-        backward = ($scope.inMemoryEntries.position + steps - $scope.pagination.pageSize <= 0);
+        backward = ($scope.inMemoryEntries.position + steps - $scope.pagination.pageSize < 0) && !(currentPage === previousPage);
 
 
       if (($scope.pagination.line - previousLine > $scope.pagination.pageSize) || (previousLine - $scope.pagination.line > $scope.pagination.pageSize) || renew) {
@@ -360,7 +353,7 @@ app
             return index == self.indexOf(elem);
           });
 
-          $scope.inMemoryEntries.position = pagesToFetch.indexOf(currentPage) * $scope.pagination.pageSize
+          $scope.inMemoryEntries.position = pagesToFetch.indexOf(currentPage) * $scope.pagination.pageSize;
           entryPosition(steps);
 
           fillBuffer();
@@ -370,6 +363,7 @@ app
       else if (forward) {
         kibanaLoggerSvc.moveLogLines(nextPage, false, () => {
 
+          $scope.inMemoryEntries.position += steps;
           entryPosition(steps);
 
           fillBuffer();
@@ -378,6 +372,7 @@ app
       else if (backward) {
         kibanaLoggerSvc.moveLogLines(previousPage, true, () => {
 
+          $scope.inMemoryEntries.position += steps;
           entryPosition(steps);
 
           fillBuffer();
@@ -385,28 +380,11 @@ app
       }
       else {
 
-        var isStartBeforeStep = isStartPage();
-
+        $scope.inMemoryEntries.position += steps;
         entryPosition(steps);
 
-        if (steps < 0 && isStartBeforeStep) {
-          buildBuffer();
-          fillBuffer($scope.pagination.pageSize - 1);
-        } else if (steps > 0 && isStartPage()) {
-          buildBuffer();
-          fillBuffer(0);
-        } else {
-
-          var newActive = $scope.inMemoryEntries.position % $scope.pagination.pageSize;
-
-          $scope.buffer.forEach((obj, i) => {
-            if (i === newActive) {
-              obj.active = true;
-            } else {
-              obj.active = false;
-            }
-          })
-        }
+        buildBuffer();
+        fillBuffer();
 
       }
 
@@ -422,19 +400,14 @@ app
         $scope.buffer.push({id: i});
     };
 
-    var isStartPage = function () {
-      return ($scope.inMemoryEntries.position % $scope.pagination.pageSize) === 0;
-    };
-
     var entryPosition = function (steps) {
 
-
-      let reset = $scope.inMemoryEntries.position % $scope.pagination.pageSize || (steps > 0 ? 0 : $scope.pagination.pageSize);
+      let reset = $scope.inMemoryEntries.position % $scope.pagination.pageSize ;
 
       if ($scope.inMemoryEntries.position !== 0)
         $scope.inMemoryEntries.position -= reset;
 
-      $scope.inMemoryEntries.position += $scope.pagination.line % $scope.pagination.pageSize || (steps < 0 ? 0 : $scope.pagination.pageSize);
+      $scope.inMemoryEntries.position += $scope.pagination.line % $scope.pagination.pageSize;
 
       $scope.inMemoryEntries.position = $scope.inMemoryEntries.position >= $scope.inMemoryEntries.entries.length ? $scope.inMemoryEntries.entries.length - 1 : $scope.inMemoryEntries.position;
       $scope.inMemoryEntries.position = $scope.inMemoryEntries.position < 0 ? 0 : $scope.inMemoryEntries.position;
@@ -886,10 +859,10 @@ app
       return $scope.page === 0;
     };
     $scope.noPreviousFive = function () {
-      return $scope.page <= 5;
+      return $scope.page < 5;
     };
     $scope.noPreviousTen = function () {
-      return $scope.page <= 10;
+      return $scope.page < 10;
     };
     $scope.noNext = function () {
       return $scope.page === $scope.totalPages;
@@ -963,6 +936,7 @@ app
 
         function getPages(currentPage, totalPages) {
           var pages = [];
+          totalPages--;
 
           // Default page limits
           var startPage = 0, endPage = totalPages;
