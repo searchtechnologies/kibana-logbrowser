@@ -19,6 +19,8 @@ require('plugins/kibana_logger/less/slider-custom.less');
 require('plugins/kibana_logger/lib/lodash/dist/lodash.min.js');
 require('plugins/kibana_logger/lib/angularjs-slider/dist/rzslider.min.js');
 
+require('plugins/kibana_logger/overwrite/pagination.js');
+
 const app = require('ui/modules').get('app/kibana_logger', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule']);
 
 app
@@ -64,7 +66,7 @@ app
         });
 
         if (root.indices.length > 0)
-          root.options.index = root.indices[1];
+          root.options.index = root.indices[0];
 
         if (callback)
           callback();
@@ -104,6 +106,10 @@ app
       }).then((response) => {
 
         if (front) {
+
+          if (response.data.total)
+            root.pagination.total = response.data.total
+
           response.data.lines.reverse().forEach((line) => {
             root.inMemoryEntries.entries.unshift(line);
             root.inMemoryEntries.position++;
@@ -316,36 +322,44 @@ app
 
     var loadBuffer = function (renew) {
 
-      var steps = $scope.pagination.line - previousLine;
-
       $scope.pagination.line = $scope.pagination.line || 0;
 
-      var previous = $scope.pagination.line - $scope.pagination.pageSize;
-      var next = $scope.pagination.line + $scope.pagination.pageSize;
-      var current = $scope.pagination.line;
+      var steps = $scope.pagination.line - previousLine;
+      var forward = false, backward = false, beyond = false;
 
-      next = next >= $scope.pagination.total ? $scope.pagination.total - 1 : next;
-      previous = previous < 0 ? 0 : previous;
+      beyond = (($scope.pagination.line - previousLine > $scope.pagination.pageSize)
+                || (previousLine - $scope.pagination.line > $scope.pagination.pageSize)
+                || renew
+                || ($scope.inMemoryEntries.position + steps >= $scope.inMemoryEntries.entries.length)
+                || ($scope.inMemoryEntries.position + steps < 0));
 
-      var nextPage = Math.ceil(next / $scope.pagination.pageSize) - 1;
-      var previousPage = Math.ceil(previous / $scope.pagination.pageSize) - 1;
-      var currentPage = Math.ceil(current / $scope.pagination.pageSize) - 1;
-
-      var forward = false, backward = false;
-
-      if(steps > 0)
-        forward = ($scope.inMemoryEntries.position + steps + $scope.pagination.pageSize > $scope.inMemoryEntries.entries.length) && !(currentPage === nextPage);
-
-      if(steps < 0)
-        backward = ($scope.inMemoryEntries.position + steps - $scope.pagination.pageSize < 0) && !(currentPage === previousPage);
+      previousLine = $scope.pagination.line + 0;
 
 
-      if (($scope.pagination.line - previousLine > $scope.pagination.pageSize) || (previousLine - $scope.pagination.line > $scope.pagination.pageSize) || renew) {
+      var previous = 0, next = 0, current = 0;
+      var previousPage = 0, nextPage = 0, currentPage = 0;
+
+      /* If it is beyond the page size *********************************************************************************/
+
+      if (beyond) {
 
         while ($scope.inMemoryEntries.entries.length > 0)
           $scope.inMemoryEntries.entries.pop();
 
-        var pagesToFetch = [previousPage, currentPage, nextPage];
+        current = $scope.pagination.line;
+        previous = current - $scope.pagination.pageSize;
+        next = current + $scope.pagination.pageSize;
+
+        //next = next >= $scope.pagination.total ? $scope.pagination.total - 1 : next;
+        //previous = previous < 0 ? 0 : previous;
+
+        //nextPage = Math.ceil(next / $scope.pagination.pageSize) - 1;
+        //previousPage = Math.ceil(previous / $scope.pagination.pageSize) - 1;
+        currentPage = Math.floor(current / $scope.pagination.pageSize);
+
+
+       // var pagesToFetch = [previousPage, currentPage, nextPage];
+        var pagesToFetch = [currentPage];
 
         kibanaLoggerSvc.getLogLines(pagesToFetch, false, () => {
 
@@ -353,42 +367,74 @@ app
             return index == self.indexOf(elem);
           });
 
-          $scope.inMemoryEntries.position = pagesToFetch.indexOf(currentPage) * $scope.pagination.pageSize;
+          $scope.inMemoryEntries.position = 0;
           entryPosition(steps);
 
           fillBuffer();
         });
 
-      }
-      else if (forward) {
-        kibanaLoggerSvc.moveLogLines(nextPage, false, () => {
-
-          $scope.inMemoryEntries.position += steps;
-          entryPosition(steps);
-
-          fillBuffer();
-        });
-      }
-      else if (backward) {
-        kibanaLoggerSvc.moveLogLines(previousPage, true, () => {
-
-          $scope.inMemoryEntries.position += steps;
-          entryPosition(steps);
-
-          fillBuffer();
-        });
-      }
-      else {
-
-        $scope.inMemoryEntries.position += steps;
-        entryPosition(steps);
-
-        buildBuffer();
-        fillBuffer();
-
+        return;
       }
 
-      previousLine = $scope.pagination.line + 0;
+      /* Check the movement *******************************************************************************************
+
+      current = $scope.pagination.line;
+      previous = current - $scope.pagination.pageSize;
+      next = current + $scope.pagination.pageSize;
+
+
+      next = next >= $scope.pagination.total ? $scope.pagination.total - 1 : next;
+      previous = previous < 0 ? 0 : previous;
+
+      nextPage = Math.ceil(next / $scope.pagination.pageSize) - 1;
+      previousPage = Math.ceil(previous / $scope.pagination.pageSize) - 1;
+      currentPage = Math.ceil(current / $scope.pagination.pageSize) - 1;
+
+
+       Move Forward *************************************************************************************************
+
+      if (steps > 0) {
+        forward = ($scope.inMemoryEntries.position + steps + $scope.pagination.pageSize > $scope.inMemoryEntries.entries.length) && !(currentPage === nextPage);
+
+        if (forward) {
+          kibanaLoggerSvc.moveLogLines(nextPage, false, () => {
+
+            $scope.inMemoryEntries.position += steps;
+            entryPosition(steps);
+
+            fillBuffer();
+          });
+
+          return;
+        }
+      }
+
+       Move Backward ************************************************************************************************
+
+      if (steps < 0) {
+        backward = ($scope.inMemoryEntries.position + steps - $scope.pagination.pageSize < 0) && !(currentPage === previousPage);
+
+        if (backward) {
+          kibanaLoggerSvc.moveLogLines(previousPage, true, () => {
+
+            $scope.inMemoryEntries.position += steps;
+            entryPosition(steps);
+
+            fillBuffer();
+          });
+
+          return;
+        }
+      }
+
+       Move inside memory *******************************************************************************************/
+
+      $scope.inMemoryEntries.position += steps;
+      entryPosition(steps);
+
+      buildBuffer();
+      fillBuffer();
+
     };
 
     var buildBuffer = function () {
@@ -402,7 +448,7 @@ app
 
     var entryPosition = function (steps) {
 
-      let reset = $scope.inMemoryEntries.position % $scope.pagination.pageSize ;
+      let reset = $scope.inMemoryEntries.position % $scope.pagination.pageSize;
 
       if ($scope.inMemoryEntries.position !== 0)
         $scope.inMemoryEntries.position -= reset;
@@ -423,15 +469,17 @@ app
     $scope.debouncedBuildBuffer = _.debounce(() => {
       buildBuffer();
 
-      $scope.pagination.line = 0;
-      $scope.previousLine = 0;
-      $scope.inMemoryEntries.position = 0;
-
-      while($scope.inMemoryEntries.entries.length > 0){
+      while ($scope.inMemoryEntries.entries.length > 0) {
         $scope.inMemoryEntries.entries.pop();
       }
 
-      kibanaLoggerSvc.getLogLines([0, 1], false, fillBuffer);
+      $scope.pagination.line = 0;
+      previousLine = 0;
+      $scope.inMemoryEntries.position = 0;
+
+
+
+      kibanaLoggerSvc.getLogLines([0], false, fillBuffer);
     }, 300);
 
     buildBuffer();
@@ -449,11 +497,11 @@ app
       $scope.previousLine = 0;
       $scope.inMemoryEntries.position = 0;
 
-      while($scope.inMemoryEntries.entries.length > 0){
+      while ($scope.inMemoryEntries.entries.length > 0) {
         $scope.inMemoryEntries.entries.pop();
       }
 
-      kibanaLoggerSvc.getLogLines([0, 1], false, fillBuffer);
+      kibanaLoggerSvc.getLogLines([0], false, fillBuffer);
     };
 
     kibanaLoggerSvc.loadBuffer = loadBuffer;
@@ -811,207 +859,7 @@ app
 
     };
 
-  })
-
-  .controller('PaginationLoggerController', ['$scope', '$attrs', '$parse', function ($scope, $attrs, $parse) {
-    var self = this,
-      ngModelCtrl = {$setViewValue: angular.noop}, // nullModelCtrl
-      setNumPages = $attrs.numPages ? $parse($attrs.numPages).assign : angular.noop;
-
-    this.init = function (ngModelCtrl_, config) {
-      ngModelCtrl = ngModelCtrl_;
-      this.config = config;
-
-      ngModelCtrl.$render = function () {
-        self.render();
-      };
-
-      if ($attrs.itemsPerPage) {
-        $scope.$parent.$watch($parse($attrs.itemsPerPage), function (value) {
-          self.itemsPerPage = parseInt(value, 10);
-          $scope.totalPages = self.calculateTotalPages() - 1;
-        });
-      } else {
-        this.itemsPerPage = config.itemsPerPage;
-      }
-    };
-
-    this.calculateTotalPages = function () {
-      var totalPages = this.itemsPerPage < 1 ? 1 : Math.ceil($scope.totalItems / this.itemsPerPage);
-      return Math.max(totalPages || 0, 0);
-    };
-
-    this.render = function () {
-      $scope.page = parseInt(ngModelCtrl.$viewValue, 10) || 0;
-    };
-
-    $scope.selectPage = function (page) {
-      if ($scope.page !== page && page >= 0 && page <= $scope.totalPages) {
-        ngModelCtrl.$setViewValue(page);
-        ngModelCtrl.$render();
-      }
-    };
-
-    $scope.getText = function (key) {
-      return $scope[key + 'Text'] || self.config[key + 'Text'];
-    };
-    $scope.noPrevious = function () {
-      return $scope.page === 0;
-    };
-    $scope.noPreviousFive = function () {
-      return $scope.page < 5;
-    };
-    $scope.noPreviousTen = function () {
-      return $scope.page < 10;
-    };
-    $scope.noNext = function () {
-      return $scope.page === $scope.totalPages;
-    };
-    $scope.noNextFive = function () {
-      return $scope.page >= $scope.totalPages - 5;
-    };
-    $scope.noNextTen = function () {
-      return $scope.page >= $scope.totalPages - 10;
-    };
-
-    $scope.$watch('totalItems', function () {
-      $scope.totalPages = self.calculateTotalPages();
-    });
-
-    $scope.$watch('totalPages', function (value) {
-      setNumPages($scope.$parent, value); // Readonly variable
-
-      if ($scope.page > value) {
-        $scope.selectPage(value);
-      } else {
-        ngModelCtrl.$render();
-      }
-    });
-  }])
-
-  .directive('paginationLogger', ['$parse', 'paginationConfig', function ($parse, paginationConfig) {
-    return {
-      restrict: 'EA',
-      scope: {
-        totalItems: '=',
-        firstText: '@',
-        previousText: '@',
-        nextText: '@',
-        lastText: '@'
-      },
-      require: ['paginationLogger', '?ngModel'],
-      controller: 'PaginationLoggerController',
-      templateUrl: 'template/pagination/paginationLogger.html',
-      replace: true,
-      link: function (scope, element, attrs, ctrls) {
-        var paginationCtrl = ctrls[0], ngModelCtrl = ctrls[1];
-
-        if (!ngModelCtrl) {
-          return; // do nothing if no ng-model
-        }
-
-        // Setup configuration parameters
-        var maxSize = angular.isDefined(attrs.maxSize) ? scope.$parent.$eval(attrs.maxSize) : paginationConfig.maxSize,
-          rotate = angular.isDefined(attrs.rotate) ? scope.$parent.$eval(attrs.rotate) : paginationConfig.rotate;
-        scope.boundaryLinks = angular.isDefined(attrs.boundaryLinks) ? scope.$parent.$eval(attrs.boundaryLinks) : paginationConfig.boundaryLinks;
-        scope.directionLinks = angular.isDefined(attrs.directionLinks) ? scope.$parent.$eval(attrs.directionLinks) : paginationConfig.directionLinks;
-
-        paginationCtrl.init(ngModelCtrl, paginationConfig);
-
-        if (attrs.maxSize) {
-          scope.$parent.$watch($parse(attrs.maxSize), function (value) {
-            maxSize = parseInt(value, 10);
-            paginationCtrl.render();
-          });
-        }
-
-        // Create page object used in template
-        function makePage(number, text, isActive) {
-          return {
-            number: number,
-            text: text,
-            active: isActive
-          };
-        }
-
-        function getPages(currentPage, totalPages) {
-          var pages = [];
-          totalPages--;
-
-          // Default page limits
-          var startPage = 0, endPage = totalPages;
-          var isMaxSized = ( angular.isDefined(maxSize) && maxSize < totalPages );
-
-          // recompute if maxSize
-          if (isMaxSized) {
-            if (rotate) {
-              // Current page is displayed in the middle of the visible ones
-              startPage = Math.max(currentPage - Math.floor(maxSize / 2), 0);
-              endPage = startPage + maxSize - 1;
-
-              // Adjust if limit is exceeded
-              if (endPage > totalPages) {
-                endPage = totalPages;
-                startPage = endPage - maxSize + 1;
-              }
-            } else {
-              // Visible pages are paginated with maxSize
-              startPage = ((Math.ceil(currentPage / maxSize) - 1) * maxSize) + 1;
-
-              // Adjust last page if limit is exceeded
-              endPage = Math.min(startPage + maxSize - 1, totalPages);
-            }
-          }
-
-          // Add page number links
-          for (var number = startPage; number <= endPage; number++) {
-            var page = makePage(number, number, number === currentPage);
-            pages.push(page);
-          }
-
-          // Add links to move between page sets
-          if (isMaxSized && !rotate) {
-            if (startPage > 1) {
-              var previousPageSet = makePage(startPage - 1, '...', false);
-              pages.unshift(previousPageSet);
-            }
-
-            if (endPage < totalPages) {
-              var nextPageSet = makePage(endPage + 1, '...', false);
-              pages.push(nextPageSet);
-            }
-          }
-
-          return pages;
-        }
-
-        var originalRender = paginationCtrl.render;
-        paginationCtrl.render = function () {
-          originalRender();
-          if (scope.page >= 0 && scope.page <= scope.totalPages) {
-            scope.pages = getPages(scope.page, scope.totalPages);
-          }
-        };
-      }
-    };
-  }])
-
-  .run(["$templateCache", function ($templateCache) {
-    $templateCache.put("template/pagination/paginationLogger.html",
-      "<ul class=\"pagination\">\n" +
-      "  <li ng-if=\"boundaryLinks\" ng-class=\"{disabled: noPrevious()}\"><a class=\"link\" href ng-click=\"selectPage(0)\">{{getText('first')}}</a></li>\n" +
-      "  <li ng-if=\"directionLinks\" ng-class=\"{disabled: noPrevious()}\"><a class=\"link\" href ng-click=\"selectPage(page - 1)\"><span class=\"glyphicon glyphicon-chevron-left\"></a></li>\n" +
-      "  <li ng-class=\"{disabled: noPreviousFive()}\"><a class=\"link\" href ng-click=\"selectPage(page - 5)\"><span class=\"glyphicon glyphicon-chevron-left\"></span> 5</a></li>\n" +
-      "  <li ng-class=\"{disabled: noPreviousTen()}\"><a class=\"link\" href ng-click=\"selectPage(page - 10)\"><span class=\"glyphicon glyphicon-chevron-left\"></span> 10</a></li>\n" +
-
-      "  <li ng-repeat=\"page in pages track by $index\" ng-class=\"{active: page.active}\"><a href ng-click=\"selectPage(page.number)\">{{page.text}}</a></li>\n" +
-
-      "  <li ng-class=\"{disabled: noNextTen()}\"><a class=\"link\" href ng-click=\"selectPage(page + 10)\">10 <span class=\"glyphicon glyphicon-chevron-right\"></span></a></li>\n" +
-      "  <li ng-class=\"{disabled: noNextFive()}\"><a class=\"link\" href ng-click=\"selectPage(page + 5)\">5 <span class=\"glyphicon glyphicon-chevron-right\"></span></a></li>\n" +
-      "  <li ng-if=\"directionLinks\" ng-class=\"{disabled: noNext()}\"><a class=\"link\" href ng-click=\"selectPage(page + 1)\"><span class=\"glyphicon glyphicon-chevron-right\"></a></li>\n" +
-      "  <li ng-if=\"boundaryLinks\" ng-class=\"{disabled: noNext()}\"><a class=\"link\" href  ng-click=\"selectPage(totalPages - 1)\">{{getText('last')}}</a></li>\n" +
-      "</ul>");
-  }]);
+  });
 
 chrome
   .setBrand({

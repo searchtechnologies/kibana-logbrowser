@@ -28,8 +28,8 @@ export default function (server, options) {
 
     var idsString = ids.toString().replace(/,/g , '\n');
 
-    console.log('appending to file');
-    fs.appendFileSync(fileIds, idsString);
+    console.log('appending to file: ' + ids.length);
+    fs.appendFileSync(fileIds, idsString + '\n');
 
   };
 
@@ -96,6 +96,7 @@ export default function (server, options) {
 
     var data = fs.readFileSync(fileIds, 'utf8');
     var lines = data.split('\n');
+    lines.pop()
 
     console.log('lines: ' + lines.length + ' / first: ' + lines[0] + ' / last: '  + lines[lines.length-1]);
 
@@ -133,7 +134,7 @@ export default function (server, options) {
       console.log('bottom element: '+ num * size +' / top element:' + top);
 
       for (let i = num * size; i < top; i++) {
-        ids.push(lines[i]);
+          ids.push(lines[i]);
       }
     });
 
@@ -154,11 +155,7 @@ export default function (server, options) {
 
       if (resp.hits.hits.length > 0) {
         parseLogLinesIds(resp.hits.hits);
-
-        if (resp._scroll_id)
-          requestMorePages(resp._scroll_id, callback);
-        else
-          callback();
+        requestMorePages(resp._scroll_id, callback);
 
       } else {
         callback();
@@ -166,7 +163,7 @@ export default function (server, options) {
     });
   };
 
-  const requestPageHandler = function (req, reply, realTotal) {
+  const requestPageHandler = function (req, reply) {
 
     var config = {
       index: req.query.index,
@@ -199,9 +196,6 @@ export default function (server, options) {
         lines: lines,
         page: req.query.page
       };
-
-      if (realTotal !== undefined)
-        result.total = realTotal;
 
       reply(result);
     });
@@ -365,12 +359,12 @@ export default function (server, options) {
           if (resp._scroll_id) {
 
             requestMorePages(resp._scroll_id, function () {
-              //requestPageHandler(req, reply, resp.hits.total);
 
               var result = {
                 total: resp.hits.total
               };
 
+              console.log('--------------------------------------');
               reply(result);
             });
           }
