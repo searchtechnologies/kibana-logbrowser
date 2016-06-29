@@ -18,10 +18,11 @@ require('plugins/kibana_logger/less/slider-custom.less');
 
 require('plugins/kibana_logger/lib/lodash/dist/lodash.min.js');
 require('plugins/kibana_logger/lib/angularjs-slider/dist/rzslider.min.js');
+require('plugins/kibana_logger/lib/angular-sanitize/angular-sanitize.min.js');
 
 require('plugins/kibana_logger/overwrite/pagination.js');
 
-const app = require('ui/modules').get('app/kibana_logger', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule']);
+const app = require('ui/modules').get('app/kibana_logger', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule', 'ngSanitize']);
 
 app
   .service('kibanaLoggerSvc', function ($http) {
@@ -41,7 +42,10 @@ app
       sortType: undefined,
       line: 0,
       maxSize: 5,
-      pageSize: 10
+      pageSize: 10,
+      query: '',
+      totalMatches: 0,
+      currentMatch: -1
     };
 
     this.indices = [];
@@ -101,6 +105,7 @@ app
           serverType: root.options.serverType.id,
           pageSize: root.pagination.pageSize,
           sortType: root.pagination.sortType.opt,
+          query: root.pagination.query,
           page: page
         }
       }).then((response) => {
@@ -108,7 +113,7 @@ app
         if (front) {
 
           if (response.data.total)
-            root.pagination.total = response.data.total
+            root.pagination.total = response.data.total;
 
           response.data.lines.reverse().forEach((line) => {
             root.inMemoryEntries.entries.unshift(line);
@@ -127,48 +132,7 @@ app
 
     };
 
-    this.cleanLogLines = function (front, callback) {
-
-      var reset = root.inMemoryEntries.position % root.pagination.pageSize;
-
-
-      if (front) {
-
-        var from = root.inMemoryEntries.position - reset;
-        var to = from + root.pagination.pageSize;
-        to = to > root.inMemoryEntries.entries.length ? root.inMemoryEntries.entries.length : to;
-
-
-        for (let i = from; i < to; i++) {
-          root.inMemoryEntries.entries.pop();
-        }
-      } else {
-
-        var to = root.inMemoryEntries.position - reset;
-        var from = to - root.pagination.pageSize;
-        from = from < 0 ? 0 : from;
-
-        for (let i = from; i < to; i++) {
-          root.inMemoryEntries.entries.shift();
-          root.inMemoryEntries.position--;
-        }
-      }
-
-      if (callback) {
-        callback();
-      }
-    };
-
-    this.moveLogLines = function (page, front, callback) {
-      root.getLogLines(page, front, () => {
-        root.cleanLogLines(front, callback);
-      });
-
-    };
-
     this.getAllLogPages = function () {
-
-      root.pagination.page = 1;
 
       $http.get('/api/kibana_logger/browsePages', {
         params: {
@@ -189,6 +153,55 @@ app
         root.onLoadLogPages();
 
       });
+    };
+
+    this.findMatches = function (callback, no_resp_callback) {
+
+      $http.get('/api/kibana_logger/find', {
+        params: {
+          index: root.options.index.id,
+          serverType: root.options.serverType.id,
+          pageSize: root.pagination.pageSize,
+          sortType: root.pagination.sortType.opt,
+          query: root.pagination.query
+        }
+      }).then((response) => {
+
+        if (response.data.total !== undefined) {
+          root.pagination.totalMatches = response.data.total;
+
+          if(root.pagination.totalMatches > 0) {
+            root.pagination.currentMatch = 0;
+
+            if(callback)
+              callback();
+
+          }else {
+            root.pagination.currentMatch = -1;
+
+            if(no_resp_callback)
+              no_resp_callback();
+          }
+        }
+
+      });
+    };
+
+    this.findOne = function (callback) {
+
+      $http.get('/api/kibana_logger/findOne', {
+        params: {
+          match: root.pagination.currentMatch
+        }
+      }).then((response) => {
+
+        root.pagination.line = response.data.position;
+
+        if(callback)
+            callback(true);
+
+      });
+
     };
 
   })
@@ -325,19 +338,17 @@ app
       $scope.pagination.line = $scope.pagination.line || 0;
 
       var steps = $scope.pagination.line - previousLine;
-      var forward = false, backward = false, beyond = false;
 
-      beyond = (($scope.pagination.line - previousLine > $scope.pagination.pageSize)
-                || (previousLine - $scope.pagination.line > $scope.pagination.pageSize)
-                || renew
-                || ($scope.inMemoryEntries.position + steps >= $scope.inMemoryEntries.entries.length)
-                || ($scope.inMemoryEntries.position + steps < 0));
+      var beyond = (($scope.pagination.line - previousLine > $scope.pagination.pageSize)
+      || (previousLine - $scope.pagination.line > $scope.pagination.pageSize)
+      || renew
+      || ($scope.inMemoryEntries.position + steps >= $scope.inMemoryEntries.entries.length)
+      || ($scope.inMemoryEntries.position + steps < 0));
 
       previousLine = $scope.pagination.line + 0;
 
 
-      var previous = 0, next = 0, current = 0;
-      var previousPage = 0, nextPage = 0, currentPage = 0;
+      var current = 0, currentPage = 0;
 
       /* If it is beyond the page size *********************************************************************************/
 
@@ -347,18 +358,8 @@ app
           $scope.inMemoryEntries.entries.pop();
 
         current = $scope.pagination.line;
-        previous = current - $scope.pagination.pageSize;
-        next = current + $scope.pagination.pageSize;
-
-        //next = next >= $scope.pagination.total ? $scope.pagination.total - 1 : next;
-        //previous = previous < 0 ? 0 : previous;
-
-        //nextPage = Math.ceil(next / $scope.pagination.pageSize) - 1;
-        //previousPage = Math.ceil(previous / $scope.pagination.pageSize) - 1;
         currentPage = Math.floor(current / $scope.pagination.pageSize);
 
-
-       // var pagesToFetch = [previousPage, currentPage, nextPage];
         var pagesToFetch = [currentPage];
 
         kibanaLoggerSvc.getLogLines(pagesToFetch, false, () => {
@@ -376,58 +377,7 @@ app
         return;
       }
 
-      /* Check the movement *******************************************************************************************
-
-      current = $scope.pagination.line;
-      previous = current - $scope.pagination.pageSize;
-      next = current + $scope.pagination.pageSize;
-
-
-      next = next >= $scope.pagination.total ? $scope.pagination.total - 1 : next;
-      previous = previous < 0 ? 0 : previous;
-
-      nextPage = Math.ceil(next / $scope.pagination.pageSize) - 1;
-      previousPage = Math.ceil(previous / $scope.pagination.pageSize) - 1;
-      currentPage = Math.ceil(current / $scope.pagination.pageSize) - 1;
-
-
-       Move Forward *************************************************************************************************
-
-      if (steps > 0) {
-        forward = ($scope.inMemoryEntries.position + steps + $scope.pagination.pageSize > $scope.inMemoryEntries.entries.length) && !(currentPage === nextPage);
-
-        if (forward) {
-          kibanaLoggerSvc.moveLogLines(nextPage, false, () => {
-
-            $scope.inMemoryEntries.position += steps;
-            entryPosition(steps);
-
-            fillBuffer();
-          });
-
-          return;
-        }
-      }
-
-       Move Backward ************************************************************************************************
-
-      if (steps < 0) {
-        backward = ($scope.inMemoryEntries.position + steps - $scope.pagination.pageSize < 0) && !(currentPage === previousPage);
-
-        if (backward) {
-          kibanaLoggerSvc.moveLogLines(previousPage, true, () => {
-
-            $scope.inMemoryEntries.position += steps;
-            entryPosition(steps);
-
-            fillBuffer();
-          });
-
-          return;
-        }
-      }
-
-       Move inside memory *******************************************************************************************/
+      /* Move inside memory *******************************************************************************************/
 
       $scope.inMemoryEntries.position += steps;
       entryPosition(steps);
@@ -459,12 +409,36 @@ app
       $scope.inMemoryEntries.position = $scope.inMemoryEntries.position < 0 ? 0 : $scope.inMemoryEntries.position;
     };
 
+    var resetBrowser = function () {
+      $scope.pagination.line = 0;
+      $scope.pagination.totalMatches = 0;
+      $scope.pagination.currentMatch = -1;
+      $scope.pagination.query = '';
+      previousLine = 0;
+      $scope.inMemoryEntries.position = 0;
+    };
+
     /****************************************
      * Initializations
      ****************************************/
 
     $scope.loadMore = loadBuffer;
 
+    $scope.findOneNext = (match) => {
+
+      match = match < $scope.pagination.totalMatches ? match : 0;
+      match = match >= 0 ? match : $scope.pagination.totalMatches -1;
+
+      $scope.pagination.currentMatch = match;
+
+      kibanaLoggerSvc.findOne(loadBuffer);
+    };
+
+    $scope.debouncedFindMatches = _.debounce(() => {
+        kibanaLoggerSvc.findMatches(()=> {
+            kibanaLoggerSvc.findOne(loadBuffer)
+        }, $scope.loadBuffer);
+      }, 500);
     $scope.debouncedLoadBuffer = _.debounce(loadBuffer, 300);
     $scope.debouncedBuildBuffer = _.debounce(() => {
       buildBuffer();
@@ -473,11 +447,7 @@ app
         $scope.inMemoryEntries.entries.pop();
       }
 
-      $scope.pagination.line = 0;
-      previousLine = 0;
-      $scope.inMemoryEntries.position = 0;
-
-
+      resetBrowser();
 
       kibanaLoggerSvc.getLogLines([0], false, fillBuffer);
     }, 300);
@@ -493,9 +463,8 @@ app
       $scope.currentPages.nextPage = 2;
 
       $scope.sliderLines.ceil = $scope.pagination.total - 1;
-      $scope.pagination.line = 0;
-      $scope.previousLine = 0;
-      $scope.inMemoryEntries.position = 0;
+
+      resetBrowser();
 
       while ($scope.inMemoryEntries.entries.length > 0) {
         $scope.inMemoryEntries.entries.pop();
@@ -859,7 +828,12 @@ app
 
     };
 
-  });
+  })
+  .filter('to_trusted', ['$sce', function($sce){
+    return function(text) {
+      return $sce.trustAsHtml(text);
+    };
+  }]);
 
 chrome
   .setBrand({

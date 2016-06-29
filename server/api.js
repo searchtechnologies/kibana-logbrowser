@@ -4,8 +4,6 @@ const request = require('sync-request');
 let utils = require('requirefrom')('src/utils');
 let fromRoot = utils('fromRoot');
 
-var browsePaging = {};
-
 export default function (server, options) {
 
   const retrieveFileds = ['message', '@timestamp', 'host', 'log_time'];
@@ -19,27 +17,36 @@ export default function (server, options) {
    * Server Side Functions
    ***********************************************/
 
+  const getFilePath = function(fileName) {
+    return path.join('c:', 'filesIds', fileName);
+  };
+
   /**
    *  Write ids in to a file
    *
    * @param ids
    */
-  const writeToFileIds = function (ids) {
+  const writeToFileIds = function (ids, name) {
 
     var idsString = ids.toString().replace(/,/g , '\n');
 
+    var file = getFilePath(name);
+
     console.log('appending to file: ' + ids.length);
-    fs.appendFileSync(fileIds, idsString + '\n');
+    fs.appendFileSync(file, idsString + '\n');
 
   };
 
-  const deleteFileIds = function () {
-    fs.exists(fileIds, (exists) => {
+  const deleteFile = function (name) {
+
+    var file = getFilePath(name);
+
+    fs.exists(file, (exists) => {
       if (exists) {
-        fs.unlinkSync(fileIds);
+        fs.unlinkSync(file);
       } else {
         try {
-          fs.mkdirSync(path.dirname(fileIds), (err) => {
+          fs.mkdirSync(path.dirname(file), (err) => {
             if (err) throw err;
           });
         } catch (e) {
@@ -49,7 +56,7 @@ export default function (server, options) {
     });
   };
 
-  const parseLogLinesIds = function (log_lines) {
+  const parseLogLinesIds = function (log_lines, fileName) {
     var ids = [];
 
     log_lines.forEach(function (obj) {
@@ -57,7 +64,7 @@ export default function (server, options) {
     });
 
     if (ids.length > 0)
-      writeToFileIds(ids);
+      writeToFileIds(ids, fileName);
   };
 
   const parseLogLines = function (log_lines) {
@@ -78,6 +85,11 @@ export default function (server, options) {
       if (obj.fields.log_time)
         line.log_time = obj.fields.log_time[0];
 
+      if(obj.highlight && obj.highlight.message && obj.highlight.message.length > 0) {
+        console.log('highlight for ' + obj.id);
+        line.message = obj.highlight.message[0];
+      }
+
       lines.push(line);
     });
 
@@ -85,7 +97,24 @@ export default function (server, options) {
     return lines;
   };
 
-  const getPage = function (pageNum, size) {
+  const getLine = function(matchNum, fileName, matchFileName) {
+
+    var file = getFilePath(fileName);
+    var matchFile = getFilePath(matchFileName);
+
+    var results = fs.readFileSync(file, 'utf8');
+    var matches = fs.readFileSync(matchFile, 'utf8');
+
+    var resultLines = results.split('\n');
+    resultLines.pop();
+
+    var matchLines = matches.split('\n');
+    matchLines.pop();
+
+    return resultLines.indexOf(matchLines[matchNum]);
+  };
+
+  const getPage = function (pageNum, size, fileName) {
 
     size = parseInt(size);
     console.log('page size: ', size);
@@ -94,9 +123,11 @@ export default function (server, options) {
       pageNum = [pageNum];
     }
 
-    var data = fs.readFileSync(fileIds, 'utf8');
+    var file = getFilePath(fileName);
+
+    var data = fs.readFileSync(file, 'utf8');
     var lines = data.split('\n');
-    lines.pop()
+    lines.pop();
 
     console.log('lines: ' + lines.length + ' / first: ' + lines[0] + ' / last: '  + lines[lines.length-1]);
 
@@ -144,7 +175,7 @@ export default function (server, options) {
     return ids;
   };
 
-  const requestMorePages = function (scrollId, callback) {
+  const requestMorePages = function (scrollId, fileName, callback) {
 
     var config = {
       scrollId: scrollId,
@@ -154,8 +185,8 @@ export default function (server, options) {
     client.scroll(config, function (error, resp) {
 
       if (resp.hits.hits.length > 0) {
-        parseLogLinesIds(resp.hits.hits);
-        requestMorePages(resp._scroll_id, callback);
+        parseLogLinesIds(resp.hits.hits, fileName);
+        requestMorePages(resp._scroll_id, fileName, callback);
 
       } else {
         callback();
@@ -173,7 +204,7 @@ export default function (server, options) {
         fields: retrieveFileds,
         query: {
           ids: {
-            values: getPage(req.query.page || [0], req.query.pageSize)
+            values: getPage(req.query.page || [0], req.query.pageSize, 'fileIds.txt')
           }
         }
       }
@@ -184,6 +215,23 @@ export default function (server, options) {
     sortType[req.query.sortType] = {
       "order": "asc"
     };
+
+    if(req.query.query) {
+      config.body.highlight = {
+        "fields" : {
+          "message" : {
+            "number_of_fragments": 1,
+            "fragment_size": 2000,
+            "highlight_query": {
+              "query_string": {
+                "default_field": "message",
+                "query": req.query.query || ''
+              }
+            }
+          }
+        }
+      }
+    }
 
     config.body.sort.push(sortType);
 
@@ -314,11 +362,7 @@ export default function (server, options) {
     path: '/api/kibana_logger/browse',
     method: 'GET',
     handler(req, reply) {
-
-      console.log('-------------------------------------------------------');
-
       requestPageHandler(req, reply);
-
     }
   });
 
@@ -348,17 +392,17 @@ export default function (server, options) {
 
       config.body.sort.push(sortType);
 
-      deleteFileIds();
+      deleteFile('fileIds.txt');
 
       client.search(config, function (error, resp) {
 
         if (resp.hits.hits.length > 0) {
 
-          parseLogLinesIds(resp.hits.hits);
+          parseLogLinesIds(resp.hits.hits, 'fileIds.txt');
 
           if (resp._scroll_id) {
 
-            requestMorePages(resp._scroll_id, function () {
+            requestMorePages(resp._scroll_id, 'fileIds.txt', function () {
 
               var result = {
                 total: resp.hits.total
@@ -380,5 +424,87 @@ export default function (server, options) {
     }
   });
 
+  server.route({
+    path: '/api/kibana_logger/find',
+    method: 'GET',
+    handler(req, reply) {
 
+      var config = {
+        index: req.query.index,
+        scroll: '5s',
+        body: {
+          sort: [],
+          size: 1000,
+          fields: [],
+          query: {
+            "bool": {
+              "must": [
+                {
+                  "match":{"server_type": req.query.serverType}
+                },
+                {
+                  "query_string": {
+                    "default_field": "message",
+                    "query": req.query.query
+                  }
+                }
+              ]
+            }
+          }
+        }
+      };
+
+      var sortType = {};
+
+      sortType[req.query.sortType] = {
+        "order": "asc"
+      };
+
+      config.body.sort.push(sortType);
+
+      console.log(JSON.stringify(config));
+
+      deleteFile('matches.txt');
+
+      client.search(config, function (error, resp) {
+
+        if (resp.hits.hits.length > 0) {
+
+          parseLogLinesIds(resp.hits.hits, 'matches.txt');
+
+          if (resp._scroll_id) {
+
+            requestMorePages(resp._scroll_id, 'matches.txt', function () {
+
+              var result = {
+                total: resp.hits.total
+              };
+
+              console.log('--------------------------------------');
+              reply(result);
+            });
+          }
+        } else {
+          reply({
+            lines: 0,
+            total: 0,
+            pageSize: 0
+          });
+        }
+      });
+    }
+  });
+
+  server.route({
+    path: '/api/kibana_logger/findOne',
+    method: 'GET',
+    handler(req, reply) {
+
+      var position = getLine(req.query.match, 'fileIds.txt', 'matches.txt');
+
+      reply({
+        position: position
+      });
+    }
+  })
 };

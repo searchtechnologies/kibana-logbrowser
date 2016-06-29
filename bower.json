@@ -10,6 +10,7 @@
   "private": true,
   "dependencies": {
     "lodash": "^4.13.1",
-    "angularjs-slider": "^4.0.2"
+    "angularjs-slider": "^4.0.2",
+    "angular-sanitize": "1.4.7"
   }
 }
