@@ -97,7 +97,7 @@ export default function (server, options) {
     return lines;
   };
 
-  const getLine = function(matchNum, fileName, matchFileName) {
+  const getLine = function(matchNum, fileName, matchFileName, matchOnly) {
 
     var file = getFilePath(fileName);
     var matchFile = getFilePath(matchFileName);
@@ -111,7 +111,10 @@ export default function (server, options) {
     var matchLines = matches.split('\n');
     matchLines.pop();
 
-    return resultLines.indexOf(matchLines[matchNum]);
+    return {
+      position: resultLines.indexOf(matchLines[matchNum]),
+      total: matchOnly ? matchLines.length : resultLines.length
+    };
   };
 
   const getPage = function (pageNum, size, fileName) {
@@ -172,7 +175,10 @@ export default function (server, options) {
     console.log(ids.length);
     console.log(ids[0] +' - ' + ids[ids.length - 1]);
 
-    return ids;
+    return {
+      ids: ids,
+      total: lines.length
+    };
   };
 
   const requestMorePages = function (scrollId, fileName, callback) {
@@ -196,6 +202,14 @@ export default function (server, options) {
 
   const requestPageHandler = function (req, reply) {
 
+    var fileToUse = 'fileIds.txt';
+
+    if(req.query.onlyMatchLines !== 'false') {
+      fileToUse = 'matches.txt'
+    }
+
+    var page = getPage(req.query.page || [0], req.query.pageSize, fileToUse);
+
     var config = {
       index: req.query.index,
       body: {
@@ -204,7 +218,7 @@ export default function (server, options) {
         fields: retrieveFileds,
         query: {
           ids: {
-            values: getPage(req.query.page || [0], req.query.pageSize, 'fileIds.txt')
+            values: page.ids
           }
         }
       }
@@ -242,7 +256,7 @@ export default function (server, options) {
 
       var result = {
         lines: lines,
-        page: req.query.page
+        total: page.total
       };
 
       reply(result);
@@ -500,11 +514,13 @@ export default function (server, options) {
     method: 'GET',
     handler(req, reply) {
 
-      var position = getLine(req.query.match, 'fileIds.txt', 'matches.txt');
+      var fileToUse = 'fileIds.txt';
 
-      reply({
-        position: position
-      });
+      if(req.query.onlyMatchLines !== 'false') {
+        fileToUse = 'matches.txt'
+      }
+
+      reply(getLine(req.query.match, fileToUse, 'matches.txt'));
     }
   })
 };

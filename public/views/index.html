@@ -94,13 +94,13 @@
               </div>
               <div class="form-group col-sm-12">
                 <div class="col-sm-offset-3 col-sm-8 text-left">
-                  <i class="control-label" ng-show="pagination.totalMatches > 0"> {{pagination.currentMatch}} of {{pagination.totalMatches}}</i>
+                  <i class="control-label" ng-show="pagination.totalMatches > 0"> {{pagination.currentMatch + 1}} of {{pagination.totalMatches}}</i>
                 </div>
               </div>
             </div>
             <div class="checkbox col-sm-6 text-right">
               <label>
-                <input type="checkbox" ng-model="onlyMatchLines"> Only Lines that match
+                <input type="checkbox" ng-model="pagination.onlyMatchLines" ng-change="toggleOnlyMatchLines()" ng-disabled="pagination.currentMatch === -1"> Only Lines that match
               </label>
             </div>
           </div>

@@ -45,7 +45,8 @@ app
       pageSize: 10,
       query: '',
       totalMatches: 0,
-      currentMatch: -1
+      currentMatch: -1,
+      onlyMatchLines: false
     };
 
     this.indices = [];
@@ -106,15 +107,15 @@ app
           pageSize: root.pagination.pageSize,
           sortType: root.pagination.sortType.opt,
           query: root.pagination.query,
-          page: page
+          page: page,
+          onlyMatchLines: root.pagination.onlyMatchLines
         }
       }).then((response) => {
 
+        if (response.data.total)
+          root.pagination.total = response.data.total;
+
         if (front) {
-
-          if (response.data.total)
-            root.pagination.total = response.data.total;
-
           response.data.lines.reverse().forEach((line) => {
             root.inMemoryEntries.entries.unshift(line);
             root.inMemoryEntries.position++;
@@ -161,7 +162,6 @@ app
         params: {
           index: root.options.index.id,
           serverType: root.options.serverType.id,
-          pageSize: root.pagination.pageSize,
           sortType: root.pagination.sortType.opt,
           query: root.pagination.query
         }
@@ -191,11 +191,13 @@ app
 
       $http.get('/api/kibana_logger/findOne', {
         params: {
-          match: root.pagination.currentMatch
+          match: root.pagination.currentMatch,
+          onlyMatchLines: root.pagination.onlyMatchLines
         }
       }).then((response) => {
 
         root.pagination.line = response.data.position;
+        root.pagination.total = response.data.total;
 
         if(callback)
             callback(true);
@@ -246,7 +248,6 @@ app
     };
 
     $scope.wrap = true;
-    $scope.onlyMatchLines = false;
 
     $scope.sliderLines = {
       floor: 0,
@@ -287,6 +288,19 @@ app
       $scope.wrap = !$scope.wrap;
     };
 
+    $scope.toggleOnlyMatchLines = function () {
+
+      $scope.pagination.line = 0;
+      $scope.pagination.total = 0;
+      $scope.sliderLines.ceil = 0;
+      previousLine = 0;
+      $scope.inMemoryEntries.position = 0;
+
+      while($scope.inMemoryEntries.entries.length > 0)
+        $scope.inMemoryEntries.entries.pop();
+
+      kibanaLoggerSvc.findOne(loadBuffer);
+    };
 
     /****************************************
      * Utilities
@@ -334,6 +348,8 @@ app
     };
 
     var loadBuffer = function (renew) {
+
+      $scope.sliderLines.ceil = $scope.pagination.total - 1;
 
       $scope.pagination.line = $scope.pagination.line || 0;
 
@@ -411,16 +427,23 @@ app
 
     var resetBrowser = function () {
       $scope.pagination.line = 0;
+      $scope.pagination.total = 0;
       $scope.pagination.totalMatches = 0;
       $scope.pagination.currentMatch = -1;
       $scope.pagination.query = '';
       previousLine = 0;
       $scope.inMemoryEntries.position = 0;
+      $scope.onlyMatchLines= false;
+
+      $scope.sliderLines.ceil = 0;
+
     };
 
     /****************************************
      * Initializations
      ****************************************/
+
+
 
     $scope.loadMore = loadBuffer;
 
@@ -439,7 +462,9 @@ app
             kibanaLoggerSvc.findOne(loadBuffer)
         }, $scope.loadBuffer);
       }, 500);
+
     $scope.debouncedLoadBuffer = _.debounce(loadBuffer, 300);
+
     $scope.debouncedBuildBuffer = _.debounce(() => {
       buildBuffer();
 
@@ -449,7 +474,11 @@ app
 
       resetBrowser();
 
-      kibanaLoggerSvc.getLogLines([0], false, fillBuffer);
+      kibanaLoggerSvc.getLogLines([0], false, () => {
+
+        $scope.sliderLines.ceil = $scope.pagination.total - 1;
+
+        fillBuffer()});
     }, 300);
 
     buildBuffer();
@@ -462,15 +491,17 @@ app
       $scope.currentPages.previousPage = 1;
       $scope.currentPages.nextPage = 2;
 
-      $scope.sliderLines.ceil = $scope.pagination.total - 1;
-
       resetBrowser();
 
       while ($scope.inMemoryEntries.entries.length > 0) {
         $scope.inMemoryEntries.entries.pop();
       }
 
-      kibanaLoggerSvc.getLogLines([0], false, fillBuffer);
+      kibanaLoggerSvc.getLogLines([0], false, () => {
+
+        $scope.sliderLines.ceil = $scope.pagination.total - 1;
+
+        fillBuffer()});
     };
 
     kibanaLoggerSvc.loadBuffer = loadBuffer;
