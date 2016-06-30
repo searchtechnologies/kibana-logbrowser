@@ -1,4 +1,6 @@
 @official-blue: rgb(34, 52, 76);
+@item-hover: #007da4;
+@item-hover-border: darken(@item-hover, 10%);
 
 .rzslider {
   position: relative;
@@ -105,7 +107,7 @@
 }
 
 .rzslider .rz-pointer.rz-active:after {
-  background-color: #451aff
+  background-color: @item-hover
 }
 
 .rzslider .rz-bubble {

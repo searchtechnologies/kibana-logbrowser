@@ -8,7 +8,6 @@ export default function (server, options) {
 
   const retrieveFileds = ['message', '@timestamp', 'host', 'log_time'];
   //const fileIds = path.join(__dirname, '..\\..\\filesIds', 'fileIds.txt');
-  const fileIds = path.join('c:', 'filesIds', 'fileIds.txt');
 
   const call = server.plugins.elasticsearch.callWithRequest;
   const client = server.plugins.elasticsearch.client;
@@ -32,7 +31,6 @@ export default function (server, options) {
 
     var file = getFilePath(name);
 
-    console.log('appending to file: ' + ids.length);
     fs.appendFileSync(file, idsString + '\n');
 
   };
@@ -86,7 +84,6 @@ export default function (server, options) {
         line.log_time = obj.fields.log_time[0];
 
       if(obj.highlight && obj.highlight.message && obj.highlight.message.length > 0) {
-        console.log('highlight for ' + obj.id);
         line.message = obj.highlight.message[0];
       }
 
@@ -120,7 +117,6 @@ export default function (server, options) {
   const getPage = function (pageNum, size, fileName) {
 
     size = parseInt(size);
-    console.log('page size: ', size);
 
     if (pageNum !== undefined && !Array.isArray(pageNum)) {
       pageNum = [pageNum];
@@ -132,27 +128,19 @@ export default function (server, options) {
     var lines = data.split('\n');
     lines.pop();
 
-    console.log('lines: ' + lines.length + ' / first: ' + lines[0] + ' / last: '  + lines[lines.length-1]);
-
     var ids = [];
 
     pageNum = pageNum.filter(function (elem, index, self) {
       return index == self.indexOf(elem);
     });
 
-    console.log('pages: ' + pageNum);
-
     pageNum.forEach((num, i) => {
 
       num = parseInt(num);
 
-      console.log('getting page ' + i+':'+num);
-
       num = num < 0 ? 0 : num;
 
       var totalPages = Math.ceil(lines.length / size) - 1;
-
-      console.log('total pages: ' + totalPages);
 
       num = num >= totalPages ? totalPages : num;
 
@@ -164,16 +152,10 @@ export default function (server, options) {
 
       top = top > lines.length ? lines.length : top;
 
-
-      console.log('bottom element: '+ num * size +' / top element:' + top);
-
       for (let i = num * size; i < top; i++) {
           ids.push(lines[i]);
       }
     });
-
-    console.log(ids.length);
-    console.log(ids[0] +' - ' + ids[ids.length - 1]);
 
     return {
       ids: ids,
@@ -202,10 +184,10 @@ export default function (server, options) {
 
   const requestPageHandler = function (req, reply) {
 
-    var fileToUse = 'fileIds.txt';
+    var fileToUse = 'fileIds' + req.query.timestamp + '.txt';
 
     if(req.query.onlyMatchLines !== 'false') {
-      fileToUse = 'matches.txt'
+      fileToUse = 'matches' + req.query.timestamp + '.txt'
     }
 
     var page = getPage(req.query.page || [0], req.query.pageSize, fileToUse);
@@ -222,12 +204,6 @@ export default function (server, options) {
           }
         }
       }
-    };
-
-    var sortType = {};
-
-    sortType[req.query.sortType] = {
-      "order": "asc"
     };
 
     if(req.query.query) {
@@ -247,7 +223,9 @@ export default function (server, options) {
       }
     }
 
-    config.body.sort.push(sortType);
+    config.body.sort.push(getSort(req.query.sortType));
+
+    console.log('GET PAGE: ' + JSON.stringify(config));
 
     client.search(config, function (error, resp) {
 
@@ -262,6 +240,23 @@ export default function (server, options) {
       reply(result);
     });
 
+  };
+
+  const getSort = function(type) {
+
+    var sortType = {};
+
+    sortType[type] = {
+      "order": "asc"
+    };
+
+    if(type === '_script') {
+      sortType[type].script = "doc.message.value.length() > 40 ? doc.message.value.substring(0,40) : doc.message.value";
+      sortType[type].type = 'string';
+      sortType[type].lang= 'groovy';
+    }
+
+    return sortType;
   };
 
   /***********************************************
@@ -311,7 +306,7 @@ export default function (server, options) {
           aggregations: {
             types: {
               terms: {
-                field: 'server_type'
+                field: 'type'
               }
             }
           }
@@ -319,20 +314,20 @@ export default function (server, options) {
       };
 
       client.search(config, function (error, resp) {
-        var servers = [];
+        var serverTypess = [];
 
         resp.aggregations.types.buckets.forEach(function (obj) {
-          servers.push({id: obj.key, name: obj.key});
+          serverTypess.push({id: obj.key, name: obj.key});
         });
 
-        reply({serverTypes: servers});
+        reply({serverTypes: serverTypess});
       });
 
     }
   });
 
   server.route({
-    path: '/api/kibana_logger/serverTypes/{index}/{server_type}',
+    path: '/api/kibana_logger/servers/{index}/{server_type}',
     method: 'GET',
     handler(req, reply) {
       client.search({
@@ -341,20 +336,13 @@ export default function (server, options) {
           size: 0,
           query: {
             match: {
-              server_type: req.params.server_type
+              type: req.params.server_type
             }
           },
           aggregations: {
             hosts: {
               terms: {
                 field: "host"
-              },
-              aggregations: {
-                address: {
-                  terms: {
-                    field: "src_ip"
-                  }
-                }
               }
             }
           }
@@ -362,11 +350,63 @@ export default function (server, options) {
       }, function (error, resp) {
         var servers = [];
 
-        resp.aggregations.types.buckets.forEach(function (obj) {
+        resp.aggregations.hosts.buckets.forEach(function (obj) {
           servers.push({id: obj.key, name: obj.key});
         });
 
-        reply({serverTypes: servers});
+        reply({servers: servers});
+      });
+
+    }
+  });
+
+  server.route({
+    path: '/api/kibana_logger/files/{index}/{server_type}',
+    method: 'GET',
+    handler(req, reply) {
+
+      var config = {
+        index: req.params.index,
+        body: {
+          size: 0,
+          query: {
+            "bool": {
+              "must": [{
+                "match":{"type": req.params.server_type}
+              }],
+              "should": []
+            }
+          },
+          aggregations: {
+            paths: {
+              terms: {
+                field: "path"
+              }
+            }
+          }
+        }
+      };
+
+      if(req.query.servers) {
+        if (!Array.isArray(req.query.servers)) {
+          req.query.servers = [req.query.servers]
+        }
+
+        req.query.servers.forEach((server)=> {
+          config.body.query.bool.should.push({
+            "match": {host: server}
+          });
+        });
+      }
+
+      client.search(config, function (error, resp) {
+        var files = [];
+
+        resp.aggregations.paths.buckets.forEach(function (obj) {
+          files.push({id: obj.key, name: obj.key});
+        });
+
+        reply({files: files});
       });
 
     }
@@ -385,6 +425,8 @@ export default function (server, options) {
     method: 'GET',
     handler(req, reply) {
 
+      var fileName = 'fileIds' + req.query.timestamp + '.txt';
+
       var config = {
         index: req.query.index,
         scroll: '5s',
@@ -393,36 +435,47 @@ export default function (server, options) {
           size: 1000,
           fields: [],
           query: {
-            "match": {"server_type": req.query.serverType}
+            "bool": {
+              "must": [{
+                "match":{"type": req.query.serverType}
+              }],
+              "should": []
+            }
           }
         }
       };
 
-      var sortType = {};
+      if(req.query.files) {
+        if(!Array.isArray(req.query.files)) {
+          req.query.files = [req.query.files]
+        }
 
-      sortType[req.query.sortType] = {
-        "order": "asc"
-      };
+        req.query.files.forEach((file)=>{
+          config.body.query.bool.should.push({
+            "match":{path: file}
+          });
+        });
+      }
 
-      config.body.sort.push(sortType);
+      config.body.sort.push(getSort(req.query.sortType));
 
-      deleteFile('fileIds.txt');
+      deleteFile(fileName);
 
+      console.log('GET ALL PAGES: ' + JSON.stringify(config));
       client.search(config, function (error, resp) {
 
         if (resp.hits.hits.length > 0) {
 
-          parseLogLinesIds(resp.hits.hits, 'fileIds.txt');
+          parseLogLinesIds(resp.hits.hits, fileName);
 
           if (resp._scroll_id) {
 
-            requestMorePages(resp._scroll_id, 'fileIds.txt', function () {
+            requestMorePages(resp._scroll_id, fileName, function () {
 
               var result = {
                 total: resp.hits.total
               };
 
-              console.log('--------------------------------------');
               reply(result);
             });
           }
@@ -443,6 +496,8 @@ export default function (server, options) {
     method: 'GET',
     handler(req, reply) {
 
+      var fileName = 'matches' + req.query.timestamp + '.txt';
+
       var config = {
         index: req.query.index,
         scroll: '5s',
@@ -454,7 +509,7 @@ export default function (server, options) {
             "bool": {
               "must": [
                 {
-                  "match":{"server_type": req.query.serverType}
+                  "match":{"type": req.query.serverType}
                 },
                 {
                   "query_string": {
@@ -462,39 +517,44 @@ export default function (server, options) {
                     "query": req.query.query
                   }
                 }
-              ]
+              ],
+            "should": []
             }
           }
         }
       };
 
-      var sortType = {};
+      if(req.query.files) {
+        if(!Array.isArray(req.query.files)) {
+          req.query.files = [req.query.files]
+        }
 
-      sortType[req.query.sortType] = {
-        "order": "asc"
-      };
+        req.query.files.forEach((file)=>{
+          config.body.query.bool.should.push({
+            "match":{path: file}
+          });
+        });
+      }
 
-      config.body.sort.push(sortType);
+      config.body.sort.push(getSort(req.query.sortType));
 
-      console.log(JSON.stringify(config));
+      deleteFile(fileName);
 
-      deleteFile('matches.txt');
-
+      console.log('GET FIND: ' + JSON.stringify(config));
       client.search(config, function (error, resp) {
 
         if (resp.hits.hits.length > 0) {
 
-          parseLogLinesIds(resp.hits.hits, 'matches.txt');
+          parseLogLinesIds(resp.hits.hits, fileName);
 
           if (resp._scroll_id) {
 
-            requestMorePages(resp._scroll_id, 'matches.txt', function () {
+            requestMorePages(resp._scroll_id, fileName, function () {
 
               var result = {
                 total: resp.hits.total
               };
 
-              console.log('--------------------------------------');
               reply(result);
             });
           }
@@ -514,13 +574,13 @@ export default function (server, options) {
     method: 'GET',
     handler(req, reply) {
 
-      var fileToUse = 'fileIds.txt';
+      var fileToUse = 'fileIds' + req.query.timestamp + '.txt';
 
       if(req.query.onlyMatchLines !== 'false') {
-        fileToUse = 'matches.txt'
+        fileToUse = 'matches' + req.query.timestamp + '.txt'
       }
 
-      reply(getLine(req.query.match, fileToUse, 'matches.txt'));
+      reply(getLine(req.query.match, fileToUse, 'matches' + req.query.timestamp + '.txt'));
     }
   })
 };

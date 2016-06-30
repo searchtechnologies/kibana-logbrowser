@@ -28,7 +28,7 @@
                 <label class="col-sm-3 control-label">Sort:</label>
                 <div class="col-sm-9">
                   <select class="form-control" ng-options="sort as sort.name for sort in sortTypes"
-                          ng-model="pagination.sortType" style="width: auto">
+                          ng-model="pagination.sortType" style="width: auto" ng-change="getAllLogPages()">
                   </select>
                 </div>
               </div>
@@ -42,10 +42,10 @@
             </button>
           </div>
 
-          <div class="col-sm-4">
+          <div class="col-sm-offset-1 col-sm-3">
             <div class="form-group row text-center">
-              <label class="col-sm-3 control-label">Page Size:</label>
-              <div class="col-sm-9">
+              <label class="col-sm-12 control-label" style="margin-bottom: 0; margin-top: -7ex;">Page Size</label>
+              <div class="col-sm-12" style="margin-bottom: 0; margin-top: -4ex;">
                 <rzslider rz-slider-model="pagination.pageSize" rz-slider-options="sliderPageSize"></rzslider>
               </div>
             </div>
@@ -149,7 +149,7 @@
               <div class="row text-center">
                 <label class="radio-inline" ng-repeat="index in indices">
                   <input name="indexSelected" type="radio" ng-value="index" ng-model="options.index"
-                         ng-change="getServers()"> <span
+                         ng-change="getServerTypes()"> <span
                   ng-bind="index.name"></span>
                 </label>
               </div>
@@ -162,7 +162,7 @@
                 <label for="serverType" class="control-label col-sm-3">Server Type:</label>
                 <div class="col-sm-9">
                   <select name="serverType" id="serverType" class="form-control"
-                          ng-options="type as type.name for type in serverTypes" ng-model="options.serverType"></select>
+                          ng-options="type as type.name for type in serverTypes" ng-model="options.serverType" ng-change="getServers()"></select>
                 </div>
               </div>
               <div class="form-group col-sm-6 text-center">
@@ -178,7 +178,7 @@
 
           <div class="row item-container">
             <item class="col-md-3 no-padding" ng-repeat="server in serverList | fltrSearch:'name':filterServer"
-                  item="server" list="options.servers"></item>
+                  item="server" list="options.servers" item-type="host"></item>
           </div>
         </div>
 
@@ -203,7 +203,7 @@
           </div>
           <div class="row item-container">
             <item class="col-sm-3 no-padding" ng-repeat="file in fileList | fltrSearch:'name':filterFile" item="file"
-                  list="options.files"></item>
+                  list="options.files" item-type="file"></item>
           </div>
         </div>
       </div>

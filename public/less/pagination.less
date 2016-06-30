@@ -1,4 +1,6 @@
 @official-blue: rgb(34, 52, 76);
+@item-hover: #007da4;
+@item-hover-border: darken(@item-hover, 30%);
 
 .pagination {
   display: inline-block;
@@ -14,8 +16,8 @@
 
     &:hover, &:focus {
       color: #ffffff;
-      background-color: #121c29;
-      border-color: #000000;
+      background-color: @item-hover;
+      border-color: @item-hover-border;
     }
   }
 
@@ -100,7 +102,7 @@
 }
 .pagination-sm > li > a,
 .pagination-sm > li > span {
-  padding: 5px 10px;
+  padding: 5px 7px;
   font-size: 12px;
   line-height: 1.5;
 }

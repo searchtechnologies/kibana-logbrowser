@@ -27,6 +27,8 @@ const app = require('ui/modules').get('app/kibana_logger', ['ui.bootstrap', 'ui.
 app
   .service('kibanaLoggerSvc', function ($http) {
 
+    var timestamp = new Date().getTime();
+
     var root = this;
 
     this.options = {
@@ -36,6 +38,8 @@ app
       servers: [],
       files: []
     };
+
+    this.serverList = [];
 
     this.pagination = {
       total: 0,
@@ -52,6 +56,8 @@ app
     this.indices = [];
 
     this.serverTypes = [];
+
+    this.fileList = [];
 
     this.inMemoryEntries = {
       position: 0,
@@ -78,7 +84,7 @@ app
       });
     };
 
-    this.getServers = function (callback) {
+    this.getServerTypes = function (callback) {
 
       $http.get('/api/kibana_logger/serverTypes/' + root.options.index.id).then((response) => {
 
@@ -91,7 +97,71 @@ app
 
         if (root.serverTypes.length > 0)
           root.options.serverType = root.serverTypes[0];
+
+        if(callback);
+          callback()
       });
+    };
+
+    this.getServers = function (callback) {
+
+      $http.get('/api/kibana_logger/servers/' + root.options.index.id + '/' + root.options.serverType.id).then((response) => {
+
+        while(root.serverList.length > 0)
+          root.serverList.pop();
+
+        while(root.options.servers.length > 0)
+          root.options.servers.pop();
+
+        response.data.servers.forEach((server) => {
+          root.serverList.push({
+            id: server.id,
+            name: server.name
+          })
+        });
+
+        if(root.serverList.length > 0)
+          root.options.servers.push(root.serverList[0].id);
+
+
+        if(callback)
+          callback();
+
+      });
+    };
+
+    this.getFiles = function(callback) {
+
+      if(root.options.servers.length === 0){
+        while(root.fileList.length > 0)
+          root.fileList.pop();
+
+        while(root.options.files.length > 0)
+          root.options.files.pop();
+
+        return;
+      }
+
+      $http.get('/api/kibana_logger/files/' + root.options.index.id + '/' + root.options.serverType.id, {
+        params: {
+          servers : root.options.servers
+        }
+      }).then((response) => {
+
+        while(root.fileList.length > 0)
+          root.fileList.pop();
+
+        while(root.options.files.length > 0)
+          root.options.files.pop();
+
+        response.data.files.forEach((file) => {
+          root.fileList.push({
+            id: file.id,
+            name: file.name
+          })
+        });
+      });
+
     };
 
     this.getLogLines = function (page, front, callback) {
@@ -108,7 +178,8 @@ app
           sortType: root.pagination.sortType.opt,
           query: root.pagination.query,
           page: page,
-          onlyMatchLines: root.pagination.onlyMatchLines
+          onlyMatchLines: root.pagination.onlyMatchLines,
+          timestamp: timestamp
         }
       }).then((response) => {
 
@@ -140,7 +211,9 @@ app
           index: root.options.index.id,
           serverType: root.options.serverType.id,
           pageSize: root.pagination.pageSize,
-          sortType: root.pagination.sortType.opt
+          sortType: root.pagination.sortType.opt,
+          files: root.options.files,
+          timestamp: timestamp
         }
       }).then((response) => {
 
@@ -163,7 +236,9 @@ app
           index: root.options.index.id,
           serverType: root.options.serverType.id,
           sortType: root.pagination.sortType.opt,
-          query: root.pagination.query
+          query: root.pagination.query,
+          files: root.options.files,
+          timestamp: timestamp
         }
       }).then((response) => {
 
@@ -180,7 +255,7 @@ app
             root.pagination.currentMatch = -1;
 
             if(no_resp_callback)
-              no_resp_callback();
+              no_resp_callback(true);
           }
         }
 
@@ -192,7 +267,8 @@ app
       $http.get('/api/kibana_logger/findOne', {
         params: {
           match: root.pagination.currentMatch,
-          onlyMatchLines: root.pagination.onlyMatchLines
+          onlyMatchLines: root.pagination.onlyMatchLines,
+          timestamp: timestamp
         }
       }).then((response) => {
 
@@ -210,8 +286,10 @@ app
 
   .controller('kibanaLogger', ['$scope', 'kibanaLoggerSvc', function ($scope, kibanaLoggerSvc) {
 
-    kibanaLoggerSvc.getIndices(function () {
-      kibanaLoggerSvc.getServers();
+    kibanaLoggerSvc.getIndices( () => {
+      kibanaLoggerSvc.getServerTypes(kibanaLoggerSvc.getServers(() => {
+        kibanaLoggerSvc.getFiles();
+      }));
     });
 
     $scope.loadBrowse = function () {
@@ -233,7 +311,7 @@ app
       },
       {
         name: 'First 40 characters',
-        opt: ''
+        opt: '_script'
       }
     ];
 
@@ -241,11 +319,6 @@ app
     $scope.pagination.sortType = $scope.sortTypes[0];
 
     $scope.inMemoryEntries = kibanaLoggerSvc.inMemoryEntries;
-
-    $scope.currentPages = {
-      previousPage: undefined,
-      nextPage: undefined
-    };
 
     $scope.wrap = true;
 
@@ -443,7 +516,7 @@ app
      * Initializations
      ****************************************/
 
-
+    $scope.getAllLogPages = kibanaLoggerSvc.getAllLogPages;
 
     $scope.loadMore = loadBuffer;
 
@@ -460,7 +533,7 @@ app
     $scope.debouncedFindMatches = _.debounce(() => {
         kibanaLoggerSvc.findMatches(()=> {
             kibanaLoggerSvc.findOne(loadBuffer)
-        }, $scope.loadBuffer);
+        }, loadBuffer);
       }, 500);
 
     $scope.debouncedLoadBuffer = _.debounce(loadBuffer, 300);
@@ -488,8 +561,6 @@ app
      ****************************************/
 
     kibanaLoggerSvc.onLoadLogPages = function () {
-      $scope.currentPages.previousPage = 1;
-      $scope.currentPages.nextPage = 2;
 
       resetBrowser();
 
@@ -509,7 +580,7 @@ app
 
   .controller('kibanaLoggerSetting', ['$scope', 'kibanaLoggerSvc', function ($scope, kibanaLoggerSvc) {
 
-    $scope.getServers = kibanaLoggerSvc.getServers;
+
 
     $scope.indices = kibanaLoggerSvc.indices;
 
@@ -534,227 +605,9 @@ app
 
     $scope.serverTypes = kibanaLoggerSvc.serverTypes;
 
-    $scope.serverList = [
-      {
-        name: 'rftcpelp01.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftcpelp02.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftcpelp03.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftmappp01',
-        address: ''
-      },
-      {
-        name: 'rftmappp02',
-        address: ''
-      },
-      {
-        name: 'rftmappp03',
-        address: ''
-      },
-      {
-        name: 'rftmappp04',
-        address: ''
-      },
-      {
-        name: 'rftuebp04',
-        address: ''
-      },
-      {
-        name: 'rftuebp05',
-        address: ''
-      },
-      {
-        name: 'rftuebp06',
-        address: ''
-      },
-      {
-        name: 'rftuebp07',
-        address: ''
-      },
-      {
-        name: 'rftuebp08',
-        address: ''
-      },
-      {
-        name: 'rftuebp09',
-        address: ''
-      },
-      {
-        name: 'rftwaappp01.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwngp01',
-        address: ''
-      },
-      {
-        name: 'rftwngp02',
-        address: ''
-      },
-      {
-        name: 'rftwngp03',
-        address: ''
-      },
-      {
-        name: 'rftwschp01.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwschp02.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwschp04',
-        address: ''
-      },
-      {
-        name: 'rftwschp05',
-        address: ''
-      },
-      {
-        name: 'rftwschp06',
-        address: ''
-      },
-      {
-        name: 'rftwwapp01.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwapp02.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwapp03.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwapp04.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwapp05.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwapp06.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwapp07.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwapp08.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwapp09.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwapp10.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwapp11',
-        address: ''
-      },
-      {
-        name: 'rftwwapp12',
-        address: ''
-      },
-      {
-        name: 'rftwwebp01.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwebp02.hbc.com',
-        address: ''
-      },
-      {
-        name: 'rftwwebp03.hbc.com',
-        address: ''
-      },
-      {
-        name: 'sd1psvc01lx',
-        address: ''
-      },
-      {
-        name: 'sd1putl02lx',
-        address: ''
-      },
-      {
-        name: 'sd1pxx10lx',
-        address: ''
-      },
-      {
-        name: 'sd1pxx11lx',
-        address: ''
-      }
-    ];
+    $scope.serverList = kibanaLoggerSvc.serverList;
 
-    $scope.fileList = [
-      {
-        name: 'ffdc/PRBactHBCserver11_exception.log',
-        fullpath: ''
-      },
-      {
-        name: 'nodeagent/SystemOut.log',
-        fullpath: ''
-      },
-      {
-        name: 'PRBactHBCserver11/native_stderr.log',
-        fullpath: ''
-      },
-      {
-        name: 'PRBactHBCserver12/SystemOut.log',
-        fullpath: ''
-      },
-      {
-        name: 'PRBactHBCserver5/SystemOut.log',
-        fullpath: ''
-      },
-      {
-        name: 'PRBactHBCserver7/SystemOut.log',
-        fullpath: ''
-      },
-      {
-        name: 'PRBactHBCserver9/SystemOut.log',
-        fullpath: ''
-      },
-      {
-        name: 'ffdc/PRBactHBCserver6_exception.log',
-        fullpath: ''
-      },
-      {
-        name: 'PRBactHBCserver10/SystemOut.log',
-        fullpath: ''
-      },
-      {
-        name: 'PRBactHBCserver11/SystemOut.log',
-        fullpath: ''
-      },
-      {
-        name: 'PRBactHBCserver3/SystemOut.log',
-        fullpath: ''
-      },
-      {
-        name: 'PRBactHBCserver6/SystemOut.log',
-        fullpath: ''
-      },
-      {
-        name: 'PRBactHBCserver8/SystemOut.log',
-        fullpath: ''
-      }
-    ];
+    $scope.fileList = kibanaLoggerSvc.fileList;
 
     $scope.buffer = [];
 
@@ -762,6 +615,24 @@ app
     /**
      * Set Defaults
      */
+
+    $scope.getServerTypes = ()=> {
+      kibanaLoggerSvc.getServerTypes(() => {
+        kibanaLoggerSvc.getServers(() => {
+          kibanaLoggerSvc.getFiles();
+        });
+      });
+    };
+
+    $scope.getServers =() => {
+      kibanaLoggerSvc.getServers(() => {
+        kibanaLoggerSvc.getFiles();
+      });
+    };
+
+    $scope.$watch('serverList', (newVal, oldVal) => {
+      kibanaLoggerSvc.getFiles();
+    }, true);
 
     $scope.options = kibanaLoggerSvc.options;
   }])
@@ -772,10 +643,11 @@ app
       restrict: 'E',
       scope: {
         list: '=',
-        item: '='
+        item: '=',
+        itemType: '@'
       },
       template: '<a class="col-sm-12 text-center item" href="" ng-bind="item.name" ng-class="{active: active}" ng-click="toggle()"></a>',
-      controller: ['$scope', function ($scope) {
+      controller: ['$scope', 'kibanaLoggerSvc', function ($scope, kibanaLoggerSvc) {
 
         $scope.active = false;
 
@@ -783,7 +655,7 @@ app
 
         for (i = 0; i < $scope.list.length; i++) {
 
-          if (JSON.stringify(item) === JSON.stringify($scope.list[i])) {
+          if (JSON.stringify($scope.item.id) === JSON.stringify($scope.list[i])) {
             $scope.active = true;
             break;
           }
@@ -795,17 +667,19 @@ app
 
             for (i = 0; i < $scope.list.length; i++) {
 
-              if (JSON.stringify($scope.item) === JSON.stringify($scope.list[i])) {
+              if ($scope.item.id === $scope.list[i]) {
                 $scope.list.splice(i, 1);
                 $scope.active = false;
-                return;
               }
             }
 
           } else {
-            $scope.list.push($scope.item);
+            $scope.list.push($scope.item.id);
             $scope.active = true;
           }
+
+          if($scope.itemType === 'host')
+            kibanaLoggerSvc.getFiles();
         }
 
       }]

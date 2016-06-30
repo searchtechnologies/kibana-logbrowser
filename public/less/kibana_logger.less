@@ -1,8 +1,10 @@
 @official-blue: rgb(34, 52, 76);
-@item-active: rgb(185, 205, 229);
-@item-hover: rgb(60, 174, 210);
+@item-hover: #007da4;
+@item-active:  lighten(@item-hover, 10%);
+@item-hover-border: darken(@item-hover, 10%);
 @header-color: rgb(255, 255, 255);
 @white: rgb(255, 255, 255);
+@black: rgb(0, 0, 0);
 
 .border-bottom {
   border-bottom: 1px solid rgb(129, 129, 129);
@@ -81,7 +83,7 @@
     border-radius: 4px;
     overflow-x: auto;
     margin-bottom: 2ex;
-    max-height: calc(100vh - 53ex);
+    max-height: calc(100vh - 45ex);
 
     .log-line {
       display: block;
@@ -89,10 +91,22 @@
       border-bottom: 1px solid #a2a2a2;
 
       &.current {
-        background-color: #c3ffff;
+        background-color: @item-active;
+        color: @white;
 
         span {
-          background-color: #c3ffff;
+          background-color: @item-active;
+          color: @white;
+        }
+      }
+
+      &:hover, &.current:hover {
+        background-color: @item-hover;
+        color: @white;
+
+        span {
+          background-color: @item-hover;
+          color: @white;
         }
       }
 
@@ -119,6 +133,7 @@
         em {
           background-color: #ffff00;
           font-weight: bold;
+          color: @black;
         }
 
       }
