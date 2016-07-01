@@ -6,8 +6,7 @@ let fromRoot = utils('fromRoot');
 
 export default function (server, options) {
 
-  const retrieveFileds = ['message', '@timestamp', 'host', 'log_time'];
-  //const fileIds = path.join(__dirname, '..\\..\\filesIds', 'fileIds.txt');
+  const retrieveFields = ['message', '@timestamp', 'host', 'log_time'];
 
   const call = server.plugins.elasticsearch.callWithRequest;
   const client = server.plugins.elasticsearch.client;
@@ -17,6 +16,7 @@ export default function (server, options) {
    ***********************************************/
 
   const getFilePath = function(fileName) {
+    //return path.join(__dirname, '..\\..\\filesIds', fileName);
     return path.join('c:', 'filesIds', fileName);
   };
 
@@ -205,7 +205,7 @@ export default function (server, options) {
       body: {
         sort: [],
         size: req.query.pageSize * req.query.page.length,
-        fields: retrieveFileds,
+        fields: retrieveFields,
         query: {
           ids: {
             values: page.ids
@@ -232,8 +232,6 @@ export default function (server, options) {
     }
 
     config.body.sort.push(getSort(req.query.sortType));
-
-    console.log('GET PAGE: ' + JSON.stringify(config));
 
     client.search(config, function (error, resp) {
 
@@ -503,7 +501,6 @@ export default function (server, options) {
 
       deleteFile(fileName);
 
-      console.log('GET ALL PAGES: ' + JSON.stringify(config));
       client.search(config, function (error, resp) {
 
         if(error) {
@@ -590,7 +587,6 @@ export default function (server, options) {
 
       deleteFile(fileName);
 
-      console.log('GET FIND: ' + JSON.stringify(config));
       client.search(config, function (error, resp) {
 
         if(error) {

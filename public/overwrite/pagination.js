@@ -79,6 +79,14 @@ app
         ngModelCtrl.$render();
       }
     });
+
+    $scope.updated = _.debounce(() => {
+
+      $scope.page = $scope.page > $scope.totalPages -1 ? $scope.totalPages -1 : $scope.page;
+      $scope.page = $scope.page < 0 ? 0 : $scope.page;
+
+      ngModelCtrl.$setViewValue($scope.page);
+    }, 500);
   }])
 
   .directive('paginationLogger', ['$parse', 'paginationConfig', function ($parse, paginationConfig) {
@@ -196,7 +204,12 @@ app
       "  <li ng-class=\"{disabled: noPreviousFive()}\"><a class=\"link\" href ng-click=\"selectPage(page - 5)\"><span class=\"glyphicon glyphicon-chevron-left\"></span> 5</a></li>\n" +
       "  <li ng-class=\"{disabled: noPreviousTen()}\"><a class=\"link\" href ng-click=\"selectPage(page - 10)\"><span class=\"glyphicon glyphicon-chevron-left\"></span> 10</a></li>\n" +
 
-      "  <li ng-repeat=\"page in pages track by $index\" ng-class=\"{active: page.active}\"><a href ng-click=\"selectPage(page.number)\">{{page.text}}</a></li>\n" +
+      //"  <li ng-repeat=\"page in pages track by $index\" ng-class=\"{active: page.active}\"><a href ng-click=\"selectPage(page.number)\">{{page.text}}</a></li>\n" +
+      "  <li>" +
+      "<span class=\"pagination-group\">" +
+      "<input type=\"text\" class=\"form-control \" ng-model=\"page\" ng-change=\"updated()\"> of <span type=\"text\" ng-bind=\"totalPages - 1\" /></span>" +
+      "</span>" +
+      "</li>\n" +
 
       "  <li ng-class=\"{disabled: noNextTen()}\"><a class=\"link\" href ng-click=\"selectPage(page + 10)\">10 <span class=\"glyphicon glyphicon-chevron-right\"></span></a></li>\n" +
       "  <li ng-class=\"{disabled: noNextFive()}\"><a class=\"link\" href ng-click=\"selectPage(page + 5)\">5 <span class=\"glyphicon glyphicon-chevron-right\"></span></a></li>\n" +
