@@ -63,6 +63,11 @@
         <div class="col-sm-11 log-container" style="margin-bottom: 3ex;">
 
           <div class="log-line-container col-sm-12">
+
+            <div class="text-center" ng-if="options.loading">
+              <i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><span style="font-size: 23pt; margin-left: .25em;">Loading Log Entries</span>
+            </div>
+
             <div ng-repeat="entry in buffer track by entry.id" class="log-line"
                  ng-class="{current: entry.active, wrap: wrap}" ng-show="entry.message">
               <span class="timestamp" ng-bind="entry.id"></span>
@@ -131,7 +136,7 @@
           <div class="col-sm-3">
             <div class="form-group col-sm-12 text-right">
               <select class="form-control" ng-options="day as day.name for day in timeRanges"
-                      ng-model="options.time">
+                      ng-model="options.date">
               </select>
             </div>
           </div>

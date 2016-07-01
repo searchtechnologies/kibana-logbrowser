@@ -172,6 +172,14 @@ export default function (server, options) {
 
     client.scroll(config, function (error, resp) {
 
+      if(error) {
+        reply({
+          error: error
+        });
+
+        return;
+      }
+
       if (resp.hits.hits.length > 0) {
         parseLogLinesIds(resp.hits.hits, fileName);
         requestMorePages(resp._scroll_id, fileName, callback);
@@ -229,8 +237,15 @@ export default function (server, options) {
 
     client.search(config, function (error, resp) {
 
-      var lines = parseLogLines(resp.hits.hits);
+      if(error) {
+        reply({
+          error: error
+        });
 
+        return;
+      }
+
+      var lines = parseLogLines(resp.hits.hits);
 
       var result = {
         lines: lines,
@@ -314,6 +329,15 @@ export default function (server, options) {
       };
 
       client.search(config, function (error, resp) {
+
+        if(error) {
+          reply({
+            error: error
+          });
+
+          return;
+        }
+
         var serverTypess = [];
 
         resp.aggregations.types.buckets.forEach(function (obj) {
@@ -348,6 +372,15 @@ export default function (server, options) {
           }
         }
       }, function (error, resp) {
+
+        if(error) {
+          reply({
+            error: error
+          });
+
+          return;
+        }
+
         var servers = [];
 
         resp.aggregations.hosts.buckets.forEach(function (obj) {
@@ -400,6 +433,15 @@ export default function (server, options) {
       }
 
       client.search(config, function (error, resp) {
+
+        if(error) {
+          reply({
+            error: error
+          });
+
+          return;
+        }
+
         var files = [];
 
         resp.aggregations.paths.buckets.forEach(function (obj) {
@@ -463,6 +505,14 @@ export default function (server, options) {
 
       console.log('GET ALL PAGES: ' + JSON.stringify(config));
       client.search(config, function (error, resp) {
+
+        if(error) {
+          reply({
+            error: error
+          });
+
+          return;
+        }
 
         if (resp.hits.hits.length > 0) {
 
@@ -542,6 +592,14 @@ export default function (server, options) {
 
       console.log('GET FIND: ' + JSON.stringify(config));
       client.search(config, function (error, resp) {
+
+        if(error) {
+          reply({
+            error: error
+          });
+
+          return;
+        }
 
         if (resp.hits.hits.length > 0) {
 

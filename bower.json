@@ -11,6 +11,7 @@
   "dependencies": {
     "lodash": "^4.13.1",
     "angularjs-slider": "^4.0.2",
-    "angular-sanitize": "1.4.7"
+    "angular-sanitize": "1.4.7",
+    "font-awesome": "^4.6.3"
   }
 }

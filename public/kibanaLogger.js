@@ -16,6 +16,8 @@ require('plugins/kibana_logger/less/kibana_logger.less');
 require('plugins/kibana_logger/less/pagination.less');
 require('plugins/kibana_logger/less/slider-custom.less');
 
+require('plugins/kibana_logger/lib/font-awesome/css/font-awesome.min.css');
+
 require('plugins/kibana_logger/lib/lodash/dist/lodash.min.js');
 require('plugins/kibana_logger/lib/angularjs-slider/dist/rzslider.min.js');
 require('plugins/kibana_logger/lib/angular-sanitize/angular-sanitize.min.js');
@@ -32,11 +34,12 @@ app
     var root = this;
 
     this.options = {
-      time: undefined,
+      date: undefined,
       index: undefined,
       serverType: undefined,
       servers: [],
-      files: []
+      files: [],
+      loading: false
     };
 
     this.serverList = [];
@@ -160,6 +163,8 @@ app
             name: file.name
           })
         });
+
+        root.options.files.push(root.fileList[0].id);
       });
 
     };
@@ -206,6 +211,10 @@ app
 
     this.getAllLogPages = function () {
 
+      root.beforeLoadLogPages();
+
+      root.options.loading = true;
+
       $http.get('/api/kibana_logger/browsePages', {
         params: {
           index: root.options.index.id,
@@ -217,15 +226,22 @@ app
         }
       }).then((response) => {
 
-        if (response.data.total !== undefined) {
-          root.pagination.total = response.data.total;
+        if(response.data.error) {
+          console.error(response.data.error);
+          root.options.loading = false;
+          return;
         }
 
         while (root.inMemoryEntries.entries.length > 0)
           root.inMemoryEntries.entries.pop();
 
-        root.onLoadLogPages();
+        if (response.data.total !== undefined) {
+          root.pagination.total = response.data.total;
+        }
 
+        root.options.loading = false;
+
+        root.onLoadLogPages();
       });
     };
 
@@ -375,6 +391,8 @@ app
       kibanaLoggerSvc.findOne(loadBuffer);
     };
 
+    $scope.options = kibanaLoggerSvc.options;
+
     /****************************************
      * Utilities
      ****************************************/
@@ -410,11 +428,7 @@ app
           obj.id = index;
         }
 
-        if (index === $scope.inMemoryEntries.position) {
-          obj.active = true;
-        } else {
-          obj.active = false;
-        }
+        obj.active = index === $scope.inMemoryEntries.position;
 
         index++;
       });
@@ -560,7 +574,7 @@ app
      * Listeners
      ****************************************/
 
-    kibanaLoggerSvc.onLoadLogPages = function () {
+    kibanaLoggerSvc.onLoadLogPages = () => {
 
       resetBrowser();
 
@@ -575,12 +589,14 @@ app
         fillBuffer()});
     };
 
+    kibanaLoggerSvc.beforeLoadLogPages = () => {
+      buildBuffer();
+    };
+
     kibanaLoggerSvc.loadBuffer = loadBuffer;
   }])
 
   .controller('kibanaLoggerSetting', ['$scope', 'kibanaLoggerSvc', function ($scope, kibanaLoggerSvc) {
-
-
 
     $scope.indices = kibanaLoggerSvc.indices;
 
@@ -600,6 +616,8 @@ app
         date: day
       });
     }
+
+
 
     //Server List
 
@@ -635,6 +653,8 @@ app
     }, true);
 
     $scope.options = kibanaLoggerSvc.options;
+
+    $scope.options.date = $scope.timeRanges[0];
   }])
 
   .directive('item', function () {
