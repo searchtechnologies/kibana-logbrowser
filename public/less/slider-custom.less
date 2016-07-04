@@ -7,7 +7,7 @@
   display: inline-block;
   width: 100%;
   height: 4px;
-  margin: 35px 0 15px 0;
+  margin: 14px 0 20px 0;
   vertical-align: middle;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -45,7 +45,7 @@
   z-index: 1;
   width: 100%;
   height: 32px;
-  padding-top: 16px;
+  padding-top: 13px;
   margin-top: -16px;
   box-sizing: border-box
 }
@@ -74,10 +74,10 @@
 }
 
 .rzslider .rz-pointer {
-  top: -14px;
+  top: -13px;
   z-index: 3;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
   background-color: @official-blue;
   -webkit-border-radius: 16px;
@@ -87,8 +87,8 @@
 
 .rzslider .rz-pointer:after {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 8px;
+  left: 8px;
   width: 8px;
   height: 8px;
   background: #fff;
@@ -111,10 +111,11 @@
 }
 
 .rzslider .rz-bubble {
-  bottom: 16px;
+  bottom: -24px;
   padding: 1px 3px;
   color: #55637d;
-  cursor: default
+  cursor: default;
+  font-size: 8.5pt;
 }
 
 .rzslider .rz-bubble.rz-selection {
@@ -127,7 +128,7 @@
 
 .rzslider .rz-ticks {
   position: absolute;
-  top: -3px;
+  top: -6px;
   left: 0;
   z-index: 1;
   display: -webkit-flex;
@@ -210,18 +211,18 @@
 .rzslider.rz-vertical .rz-pointer {
   top: auto;
   bottom: 0;
-  left: -14px !important
+  right: -26px !important;
 }
 
 .rzslider.rz-vertical .rz-bubble {
   bottom: 0;
-  left: 16px !important;
+  right: -1px !important;
   margin-left: 3px
 }
 
 .rzslider.rz-vertical .rz-bubble.rz-selection {
   top: auto;
-  left: 16px !important
+  right: 16px !important
 }
 
 .rzslider.rz-vertical .rz-ticks {

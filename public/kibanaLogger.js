@@ -12,7 +12,7 @@ const modules = require('ui/modules');
 const indexView = require('plugins/kibana_logger/views/index.html');
 
 require('plugins/kibana_logger/less/bootstrap-custom.less');
-require('plugins/kibana_logger/less/kibana_logger.less');
+require('plugins/kibana_logger/less/kibana_logger.css');
 require('plugins/kibana_logger/less/pagination.less');
 require('plugins/kibana_logger/less/slider-custom.less');
 
@@ -49,7 +49,7 @@ app
       sortType: undefined,
       line: 0,
       maxSize: 5,
-      pageSize: 10,
+      pageSize: 50,
       query: '',
       totalMatches: 0,
       currentMatch: -1,
@@ -70,20 +70,42 @@ app
 
     this.getIndices = function (callback) {
 
-      $http.get('/api/kibana_logger/indices').then((response) => {
+      $http.get('/api/kibana_logger/indices/' + root.options.date.date).then((response) => {
 
         while (root.indices.length > 0)
           root.indices.pop();
 
-        response.data.indices.forEach(function (obj) {
-          root.indices.push(obj)
-        });
+        if (response.data.indices.length > 0) {
 
-        if (root.indices.length > 0)
-          root.options.index = root.indices[0];
+          response.data.indices.forEach(function (obj) {
+            root.indices.push(obj)
+          });
 
-        if (callback)
-          callback();
+          if (root.indices.length > 0)
+            root.options.index = root.indices[0];
+
+          if (callback)
+            callback();
+        } else {
+          while (root.serverTypes.length > 0)
+            root.serverTypes.pop();
+
+          while (root.serverList.length > 0)
+            root.serverList.pop();
+
+          while (root.fileList.length > 0)
+            root.fileList.pop();
+
+          root.options.index = undefined;
+          root.options.serverType = undefined;
+
+          while (root.options.servers.length > 0)
+            root.options.servers.pop();
+
+          while (root.options.files.length > 0)
+            root.options.files.pop();
+
+        }
       });
     };
 
@@ -101,8 +123,8 @@ app
         if (root.serverTypes.length > 0)
           root.options.serverType = root.serverTypes[0];
 
-        if(callback);
-          callback()
+        if (callback);
+        callback()
       });
     };
 
@@ -110,10 +132,10 @@ app
 
       $http.get('/api/kibana_logger/servers/' + root.options.index.id + '/' + root.options.serverType.id).then((response) => {
 
-        while(root.serverList.length > 0)
+        while (root.serverList.length > 0)
           root.serverList.pop();
 
-        while(root.options.servers.length > 0)
+        while (root.options.servers.length > 0)
           root.options.servers.pop();
 
         response.data.servers.forEach((server) => {
@@ -123,23 +145,23 @@ app
           })
         });
 
-        if(root.serverList.length > 0)
+        if (root.serverList.length > 0)
           root.options.servers.push(root.serverList[0].id);
 
 
-        if(callback)
+        if (callback)
           callback();
 
       });
     };
 
-    this.getFiles = function(callback) {
+    this.getFiles = function (callback) {
 
-      if(root.options.servers.length === 0){
-        while(root.fileList.length > 0)
+      if (root.options.servers.length === 0) {
+        while (root.fileList.length > 0)
           root.fileList.pop();
 
-        while(root.options.files.length > 0)
+        while (root.options.files.length > 0)
           root.options.files.pop();
 
         return;
@@ -147,14 +169,14 @@ app
 
       $http.get('/api/kibana_logger/files/' + root.options.index.id + '/' + root.options.serverType.id, {
         params: {
-          servers : root.options.servers
+          servers: root.options.servers
         }
       }).then((response) => {
 
-        while(root.fileList.length > 0)
+        while (root.fileList.length > 0)
           root.fileList.pop();
 
-        while(root.options.files.length > 0)
+        while (root.options.files.length > 0)
           root.options.files.pop();
 
         response.data.files.forEach((file) => {
@@ -226,7 +248,7 @@ app
         }
       }).then((response) => {
 
-        if(response.data.error) {
+        if (response.data.error) {
           console.error(response.data.error);
           root.options.loading = false;
           return;
@@ -261,16 +283,16 @@ app
         if (response.data.total !== undefined) {
           root.pagination.totalMatches = response.data.total;
 
-          if(root.pagination.totalMatches > 0) {
+          if (root.pagination.totalMatches > 0) {
             root.pagination.currentMatch = 0;
 
-            if(callback)
+            if (callback)
               callback();
 
-          }else {
+          } else {
             root.pagination.currentMatch = -1;
 
-            if(no_resp_callback)
+            if (no_resp_callback)
               no_resp_callback(true);
           }
         }
@@ -291,8 +313,8 @@ app
         root.pagination.line = response.data.position;
         root.pagination.total = response.data.total;
 
-        if(callback)
-            callback(true);
+        if (callback)
+          callback(true);
 
       });
 
@@ -302,15 +324,11 @@ app
 
   .controller('kibanaLogger', ['$scope', 'kibanaLoggerSvc', function ($scope, kibanaLoggerSvc) {
 
-    kibanaLoggerSvc.getIndices( () => {
-      kibanaLoggerSvc.getServerTypes(kibanaLoggerSvc.getServers(() => {
-        kibanaLoggerSvc.getFiles();
-      }));
-    });
-
     $scope.loadBrowse = function () {
       kibanaLoggerSvc.getAllLogPages();
-    }
+    };
+
+      $scope.options = kibanaLoggerSvc.options;
 
   }])
 
@@ -355,9 +373,9 @@ app
     };
 
     $scope.sliderPageSize = {
-      floor: 10,
-      ceil: 100,
-      step: 10,
+      floor: 50,
+      ceil: 500,
+      step: 50,
       interval: 350,
       vertical: false,
       keyboardSupport: true,
@@ -379,13 +397,15 @@ app
 
     $scope.toggleOnlyMatchLines = function () {
 
+      $scope.pagination.onlyMatchLines = !$scope.pagination.onlyMatchLines;
+
       $scope.pagination.line = 0;
       $scope.pagination.total = 0;
       $scope.sliderLines.ceil = 0;
       previousLine = 0;
       $scope.inMemoryEntries.position = 0;
 
-      while($scope.inMemoryEntries.entries.length > 0)
+      while ($scope.inMemoryEntries.entries.length > 0)
         $scope.inMemoryEntries.entries.pop();
 
       kibanaLoggerSvc.findOne(loadBuffer);
@@ -520,7 +540,7 @@ app
       $scope.pagination.query = '';
       previousLine = 0;
       $scope.inMemoryEntries.position = 0;
-      $scope.onlyMatchLines= false;
+      $scope.onlyMatchLines = false;
 
       $scope.sliderLines.ceil = 0;
 
@@ -537,7 +557,7 @@ app
     $scope.findOneNext = (match) => {
 
       match = match < $scope.pagination.totalMatches ? match : 0;
-      match = match >= 0 ? match : $scope.pagination.totalMatches -1;
+      match = match >= 0 ? match : $scope.pagination.totalMatches - 1;
 
       $scope.pagination.currentMatch = match;
 
@@ -545,12 +565,12 @@ app
     };
 
     $scope.debouncedFindMatches = _.debounce(() => {
-        kibanaLoggerSvc.findMatches(()=> {
-            kibanaLoggerSvc.findOne(loadBuffer)
-        }, loadBuffer);
-      }, 500);
+      kibanaLoggerSvc.findMatches(()=> {
+        kibanaLoggerSvc.findOne(loadBuffer)
+      }, loadBuffer);
+    }, 500);
 
-    $scope.debouncedLoadBuffer = _.debounce(loadBuffer, 300);
+    $scope.debouncedLoadBuffer = _.debounce(loadBuffer, 500);
 
     $scope.debouncedBuildBuffer = _.debounce(() => {
       buildBuffer();
@@ -565,8 +585,9 @@ app
 
         $scope.sliderLines.ceil = $scope.pagination.total - 1;
 
-        fillBuffer()});
-    }, 300);
+        fillBuffer()
+      });
+    }, 500);
 
     buildBuffer();
 
@@ -586,7 +607,8 @@ app
 
         $scope.sliderLines.ceil = $scope.pagination.total - 1;
 
-        fillBuffer()});
+        fillBuffer()
+      });
     };
 
     kibanaLoggerSvc.beforeLoadLogPages = () => {
@@ -603,21 +625,19 @@ app
     var today = moment().startOf('day');
 
     $scope.timeRanges = [{
-      name: 'Today',
-      date: today
+      name: today.format('MMM, dddd DD') + ' (Today)',
+      date: today.format('YYYY.MM.DD')
     }];
 
-    for (let i = 1; i < 15; i++) {
+    for (let i = 1; i < 31; i++) {
 
       var day = moment(today).subtract(i, 'days');
 
       $scope.timeRanges.push({
-        name: day.format('MMM DD'),
-        date: day
+        name: day.format('MMM, dddd DD'),
+        date: day.format('YYYY.MM.DD')
       });
     }
-
-
 
     //Server List
 
@@ -642,7 +662,7 @@ app
       });
     };
 
-    $scope.getServers =() => {
+    $scope.getServers = () => {
       kibanaLoggerSvc.getServers(() => {
         kibanaLoggerSvc.getFiles();
       });
@@ -655,6 +675,19 @@ app
     $scope.options = kibanaLoggerSvc.options;
 
     $scope.options.date = $scope.timeRanges[0];
+
+    $scope.getIndices = ()=> {
+      kibanaLoggerSvc.getIndices(() => {
+        kibanaLoggerSvc.getServerTypes(() => {
+          kibanaLoggerSvc.getServers(() => {
+            kibanaLoggerSvc.getFiles();
+          })
+        });
+      });
+    };
+
+    $scope.getIndices();
+
   }])
 
   .directive('item', function () {
@@ -698,7 +731,7 @@ app
             $scope.active = true;
           }
 
-          if($scope.itemType === 'host')
+          if ($scope.itemType === 'host')
             kibanaLoggerSvc.getFiles();
         }
 
@@ -754,16 +787,15 @@ app
     };
 
   })
-  .filter('to_trusted', ['$sce', function($sce){
-    return function(text) {
+  .filter('to_trusted', ['$sce', function ($sce) {
+    return function (text) {
       return $sce.trustAsHtml(text);
     };
   }]);
 
 chrome
   .setBrand({
-    logo: 'url(/plugins/kibana_logger/icon.svg) left no-repeat',
-    smallLogo: 'url(/plugins/kibana_logger/icon.svg) left no-repeat'
+    logo: 'url(/plugins/kibana_logger/iconL.png) left no-repeat'
   })
   .setNavBackground('#222222')
   .setRootTemplate(indexView)

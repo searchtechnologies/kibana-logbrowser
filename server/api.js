@@ -15,8 +15,8 @@ export default function (server, options) {
    * Server Side Functions
    ***********************************************/
 
-  const getFilePath = function(fileName) {
-    //return path.join(__dirname, '..\\..\\filesIds', fileName);
+  const getFilePath = function (fileName) {
+    //return path.join(__dirname, '..\\filesIds', fileName);
     return path.join('c:', 'filesIds', fileName);
   };
 
@@ -27,7 +27,7 @@ export default function (server, options) {
    */
   const writeToFileIds = function (ids, name) {
 
-    var idsString = ids.toString().replace(/,/g , '\n');
+    var idsString = ids.toString().replace(/,/g, '\n');
 
     var file = getFilePath(name);
 
@@ -83,7 +83,7 @@ export default function (server, options) {
       if (obj.fields.log_time)
         line.log_time = obj.fields.log_time[0];
 
-      if(obj.highlight && obj.highlight.message && obj.highlight.message.length > 0) {
+      if (obj.highlight && obj.highlight.message && obj.highlight.message.length > 0) {
         line.message = obj.highlight.message[0];
       }
 
@@ -94,7 +94,7 @@ export default function (server, options) {
     return lines;
   };
 
-  const getLine = function(matchNum, fileName, matchFileName, matchOnly) {
+  const getLine = function (matchNum, fileName, matchFileName, matchOnly) {
 
     var file = getFilePath(fileName);
     var matchFile = getFilePath(matchFileName);
@@ -153,7 +153,7 @@ export default function (server, options) {
       top = top > lines.length ? lines.length : top;
 
       for (let i = num * size; i < top; i++) {
-          ids.push(lines[i]);
+        ids.push(lines[i]);
       }
     });
 
@@ -172,7 +172,7 @@ export default function (server, options) {
 
     client.scroll(config, function (error, resp) {
 
-      if(error) {
+      if (error) {
         reply({
           error: error
         });
@@ -194,7 +194,7 @@ export default function (server, options) {
 
     var fileToUse = 'fileIds' + req.query.timestamp + '.txt';
 
-    if(req.query.onlyMatchLines !== 'false') {
+    if (req.query.onlyMatchLines !== 'false') {
       fileToUse = 'matches' + req.query.timestamp + '.txt'
     }
 
@@ -214,10 +214,10 @@ export default function (server, options) {
       }
     };
 
-    if(req.query.query) {
+    if (req.query.query) {
       config.body.highlight = {
-        "fields" : {
-          "message" : {
+        "fields": {
+          "message": {
             "number_of_fragments": 1,
             "fragment_size": 2000,
             "highlight_query": {
@@ -235,7 +235,7 @@ export default function (server, options) {
 
     client.search(config, function (error, resp) {
 
-      if(error) {
+      if (error) {
         reply({
           error: error
         });
@@ -255,7 +255,7 @@ export default function (server, options) {
 
   };
 
-  const getSort = function(type) {
+  const getSort = function (type) {
 
     var sortType = {};
 
@@ -263,10 +263,10 @@ export default function (server, options) {
       "order": "asc"
     };
 
-    if(type === '_script') {
+    if (type === '_script') {
       sortType[type].script = "doc.message.value.length() > 40 ? doc.message.value.substring(0,40) : doc.message.value";
       sortType[type].type = 'string';
-      sortType[type].lang= 'groovy';
+      sortType[type].lang = 'groovy';
     }
 
     return sortType;
@@ -285,7 +285,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/kibana_logger/indices',
+    path: '/api/kibana_logger/indices/{day}',
     method: 'GET',
     handler(req, reply) {
 
@@ -296,7 +296,7 @@ export default function (server, options) {
         var indices = [];
 
         keys.forEach(function (key) {
-          if (key != '.kibana')
+          if ((key != '.kibana') && (key.indexOf(req.params.day) >= 0))
             indices.push({id: key, name: key});
         });
 
@@ -328,7 +328,7 @@ export default function (server, options) {
 
       client.search(config, function (error, resp) {
 
-        if(error) {
+        if (error) {
           reply({
             error: error
           });
@@ -371,7 +371,7 @@ export default function (server, options) {
         }
       }, function (error, resp) {
 
-        if(error) {
+        if (error) {
           reply({
             error: error
           });
@@ -402,9 +402,7 @@ export default function (server, options) {
           size: 0,
           query: {
             "bool": {
-              "must": [{
-                "match":{"type": req.params.server_type}
-              }],
+              "must": [],
               "should": []
             }
           },
@@ -418,21 +416,27 @@ export default function (server, options) {
         }
       };
 
-      if(req.query.servers) {
+      if (req.query.servers) {
         if (!Array.isArray(req.query.servers)) {
           req.query.servers = [req.query.servers]
         }
+
+        config.body.query.bool.should.push({"match": {"type": req.params.server_type}});
 
         req.query.servers.forEach((server)=> {
           config.body.query.bool.should.push({
             "match": {host: server}
           });
         });
+
+        config.body.query.bool.minimum_should_match = 2;
+      }else {
+        config.body.query.bool.must.push({"match": {"type": req.params.server_type}});
       }
 
       client.search(config, function (error, resp) {
 
-        if(error) {
+        if (error) {
           reply({
             error: error
           });
@@ -476,25 +480,29 @@ export default function (server, options) {
           fields: [],
           query: {
             "bool": {
-              "must": [{
-                "match":{"type": req.query.serverType}
-              }],
+              "must": [],
               "should": []
             }
           }
         }
       };
 
-      if(req.query.files) {
-        if(!Array.isArray(req.query.files)) {
+      if (req.query.files) {
+        if (!Array.isArray(req.query.files)) {
           req.query.files = [req.query.files]
         }
 
-        req.query.files.forEach((file)=>{
+        config.body.query.bool.should.push({"match": {"type": req.query.serverType}});
+
+        req.query.files.forEach((file)=> {
           config.body.query.bool.should.push({
-            "match":{path: file}
+            "match": {path: file}
           });
         });
+
+        config.body.query.bool.minimum_should_match = 2;
+      } else {
+        config.body.query.bool.must.push({"match": {"type": req.query.serverType}});
       }
 
       config.body.sort.push(getSort(req.query.sortType));
@@ -503,7 +511,7 @@ export default function (server, options) {
 
       client.search(config, function (error, resp) {
 
-        if(error) {
+        if (error) {
           reply({
             error: error
           });
@@ -554,32 +562,41 @@ export default function (server, options) {
           fields: [],
           query: {
             "bool": {
-              "must": [
-                {
-                  "match":{"type": req.query.serverType}
-                },
-                {
-                  "query_string": {
-                    "default_field": "message",
-                    "query": req.query.query
-                  }
-                }
-              ],
-            "should": []
+              "must": [],
+              "should": []
             }
           }
         }
       };
 
-      if(req.query.files) {
-        if(!Array.isArray(req.query.files)) {
+      if (req.query.files) {
+        if (!Array.isArray(req.query.files)) {
           req.query.files = [req.query.files]
         }
 
-        req.query.files.forEach((file)=>{
+        config.body.query.bool.should.push({"match": {"type": req.query.serverType}});
+        config.body.query.bool.should.push({
+          "query_string": {
+            "default_field": "message",
+            "query": req.query.query
+          }
+        });
+
+        req.query.files.forEach((file)=> {
           config.body.query.bool.should.push({
-            "match":{path: file}
+            "match": {path: file}
           });
+        });
+
+        config.body.query.bool.minimum_should_match = 3;
+      } else {
+
+        config.body.query.bool.must.push({"match": {"type": req.query.serverType}});
+        config.body.query.bool.must.push({
+          "query_string": {
+            "default_field": "message",
+            "query": req.query.query
+          }
         });
       }
 
@@ -589,7 +606,7 @@ export default function (server, options) {
 
       client.search(config, function (error, resp) {
 
-        if(error) {
+        if (error) {
           reply({
             error: error
           });
@@ -630,7 +647,7 @@ export default function (server, options) {
 
       var fileToUse = 'fileIds' + req.query.timestamp + '.txt';
 
-      if(req.query.onlyMatchLines !== 'false') {
+      if (req.query.onlyMatchLines !== 'false') {
         fileToUse = 'matches' + req.query.timestamp + '.txt'
       }
 
