@@ -16,8 +16,8 @@ export default function (server, options) {
    ***********************************************/
 
   const getFilePath = function (fileName) {
-    //return path.join(__dirname, '..\\filesIds', fileName);
-    return path.join('c:', 'filesIds', fileName);
+    return path.join(__dirname, '..\\filesIds', fileName);
+    //return path.join('c:', 'filesIds', fileName);
   };
 
   /**
