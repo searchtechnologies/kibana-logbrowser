@@ -250,7 +250,7 @@ app
       }).then((response) => {
 
         if (response.data.error) {
-          console.error(response.data.error);
+          alert(response.data.error.msg);
           root.options.loading = false;
           return;
         }
