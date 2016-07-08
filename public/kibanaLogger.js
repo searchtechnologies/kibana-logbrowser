@@ -336,6 +336,15 @@ app
 
   .controller('kibanaLoggerBrowser', ['$scope', 'kibanaLoggerSvc', function ($scope, kibanaLoggerSvc) {
 
+    $('#log-line-container').scroll(function() {
+
+
+      console.log($('#log-line-container').scrollLeft());
+
+      $('#log-line-header').css('left', $('#log-line-container').scrollLeft() * -1)
+
+    });
+
     $scope.sortTypes = [
       {
         name: 'Ingestion Timestamp',

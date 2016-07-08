@@ -1,6 +1,6 @@
 @official-blue: rgb(34, 52, 76);
 @item-hover: #007da4;
-@item-active:  lighten(@item-hover, 10%);
+@item-active: lighten(@item-hover, 10%);
 @item-hover-border: darken(@item-hover, 10%);
 @header-color: rgb(255, 255, 255);
 @white: rgb(255, 255, 255);
@@ -99,31 +99,40 @@
   }
 }
 
-.log-line-container {
+.log-container {
   font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
   display: block;
-  padding: 0 8.5px;
+
   line-height: 1.42857143;
   color: #7b8a8b;
   background-color: #ecf0f1;
   border: 1px solid #cccccc;
-  overflow-x: auto;
-  max-height: ~"calc(100vh - 41ex)";
+  overflow: hidden;
   width: ~"calc(100vw - 8em)";
 
-  @media (min-width: 768px) {
+  .log-line-container {
+
+    display: block;
+    overflow-x: auto;
     max-height: ~"calc(100vh - 41ex)";
-  }
+    width: 100%;
 
-  @media (min-width: 980px) {
-    max-height: ~"calc(100vh - 30.5ex)";
-  }
+    @media (min-width: 768px) {
+      max-height: ~"calc(100vh - 44ex)";
+    }
 
-  @media (min-width: 1865px) {
-    max-height: ~"calc(100vh - 25.5ex)";
+    @media (min-width: 980px) {
+      max-height: ~"calc(100vh - 33.5ex)";
+    }
+
+    @media (min-width: 1865px) {
+      max-height: ~"calc(100vh - 28.5ex)";
+    }
+    border-top: 1px solid #a2a2a2;
   }
 
   .log-line {
+    padding: 0 8.5px;
     display: block;
     width: 100%;
     border-bottom: 1px solid #a2a2a2;
@@ -145,6 +154,23 @@
       span {
         background-color: @item-hover;
         color: @white;
+      }
+    }
+
+    &.header {
+      height: 3ex;
+      position: relative;
+      font-weight: bold;
+      border-bottom: none;
+    }
+
+    &.header:hover {
+      color: #7b8a8b;
+      background-color: #ecf0f1;
+
+      span {
+        color: #7b8a8b;
+        background-color: #ecf0f1;
       }
     }
 
@@ -176,4 +202,6 @@
 
     }
   }
+
 }
+
