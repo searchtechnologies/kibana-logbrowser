@@ -1,6 +1,6 @@
 {
-  "name": "kibana_logger",
-  "description": "kibana-logger",
+  "name": "big_logger",
+  "description": "big-logger",
   "main": "index.js",
   "authors": [
     "ealvarado <ealvarado@searchtechnologies.com>"

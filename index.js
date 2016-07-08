@@ -5,9 +5,9 @@ module.exports = function (kibana) {
     require: ['kibana', 'elasticsearch'],
     uiExports: {
       apps: {
-        title: 'ST Logger',
-        icon: 'plugins/kibana_logger/icon.png',
-        main: 'plugins/kibana_logger/kibanaLogger',
+        title: 'Big Logger',
+        icon: 'plugins/big_logger/icon.png',
+        main: 'plugins/big_logger/kibanaLogger',
         autoload: [].concat(
           kibana.autoload.styles,
           'ui/chrome',

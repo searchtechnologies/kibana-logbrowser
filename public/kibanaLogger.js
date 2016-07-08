@@ -9,22 +9,22 @@ const angular = require('angular');
 const chrome = require('ui/chrome');
 const modules = require('ui/modules');
 
-const indexView = require('plugins/kibana_logger/views/index.html');
+const indexView = require('plugins/big_logger/views/index.html');
 
-require('plugins/kibana_logger/less/bootstrap-custom.less');
-require('plugins/kibana_logger/less/kibana_logger.css');
-require('plugins/kibana_logger/less/pagination.less');
-require('plugins/kibana_logger/less/slider-custom.less');
+require('plugins/big_logger/less/bootstrap-custom.less');
+require('plugins/big_logger/less/big_logger.css');
+require('plugins/big_logger/less/pagination.less');
+require('plugins/big_logger/less/slider-custom.less');
 
-require('plugins/kibana_logger/lib/font-awesome/css/font-awesome.min.css');
+require('plugins/big_logger/lib/font-awesome/css/font-awesome.min.css');
 
-require('plugins/kibana_logger/lib/lodash/dist/lodash.min.js');
-require('plugins/kibana_logger/lib/angularjs-slider/dist/rzslider.min.js');
-require('plugins/kibana_logger/lib/angular-sanitize/angular-sanitize.min.js');
+require('plugins/big_logger/lib/lodash/dist/lodash.min.js');
+require('plugins/big_logger/lib/angularjs-slider/dist/rzslider.min.js');
+require('plugins/big_logger/lib/angular-sanitize/angular-sanitize.min.js');
 
-require('plugins/kibana_logger/overwrite/pagination.js');
+require('plugins/big_logger/overwrite/pagination.js');
 
-const app = require('ui/modules').get('app/kibana_logger', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule', 'ngSanitize']);
+const app = require('ui/modules').get('app/big_logger', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule', 'ngSanitize']);
 
 app
   .service('kibanaLoggerSvc', function ($http) {
@@ -70,7 +70,7 @@ app
 
     this.getIndices = function (callback) {
 
-      $http.get('/api/kibana_logger/indices/' + root.options.date.date).then((response) => {
+      $http.get('/api/big_logger/indices/' + root.options.date.date).then((response) => {
 
         while (root.indices.length > 0)
           root.indices.pop();
@@ -111,7 +111,7 @@ app
 
     this.getServerTypes = function (callback) {
 
-      $http.get('/api/kibana_logger/serverTypes/' + root.options.index.id).then((response) => {
+      $http.get('/api/big_logger/serverTypes/' + root.options.index.id).then((response) => {
 
         while (root.serverTypes.length > 0)
           root.serverTypes.pop();
@@ -130,7 +130,7 @@ app
 
     this.getServers = function (callback) {
 
-      $http.get('/api/kibana_logger/servers/' + root.options.index.id + '/' + root.options.serverType.id).then((response) => {
+      $http.get('/api/big_logger/servers/' + root.options.index.id + '/' + root.options.serverType.id).then((response) => {
 
         while (root.serverList.length > 0)
           root.serverList.pop();
@@ -167,7 +167,7 @@ app
         return;
       }
 
-      $http.get('/api/kibana_logger/files/' + root.options.index.id + '/' + root.options.serverType.id, {
+      $http.get('/api/big_logger/files/' + root.options.index.id + '/' + root.options.serverType.id, {
         params: {
           servers: root.options.servers
         }
@@ -186,7 +186,7 @@ app
           })
         });
 
-        root.options.files.push(root.fileList[0].id);
+        //root.options.files.push(root.fileList[0].id);
       });
 
     };
@@ -197,7 +197,7 @@ app
         page = [page];
       }
 
-      $http.get('/api/kibana_logger/browse', {
+      $http.get('/api/big_logger/browse', {
         params: {
           index: root.options.index.id,
           serverType: root.options.serverType.id,
@@ -237,13 +237,14 @@ app
 
       root.options.loading = true;
 
-      $http.get('/api/kibana_logger/browsePages', {
+      $http.get('/api/big_logger/browsePages', {
         params: {
           index: root.options.index.id,
           serverType: root.options.serverType.id,
           pageSize: root.pagination.pageSize,
           sortType: root.pagination.sortType.opt,
           files: root.options.files,
+          servers: root.options.servers,
           timestamp: timestamp
         }
       }).then((response) => {
@@ -269,13 +270,14 @@ app
 
     this.findMatches = function (callback, no_resp_callback) {
 
-      $http.get('/api/kibana_logger/find', {
+      $http.get('/api/big_logger/find', {
         params: {
           index: root.options.index.id,
           serverType: root.options.serverType.id,
           sortType: root.pagination.sortType.opt,
           query: root.pagination.query,
           files: root.options.files,
+          servers: root.options.servers,
           timestamp: timestamp
         }
       }).then((response) => {
@@ -302,7 +304,7 @@ app
 
     this.findOne = function (callback) {
 
-      $http.get('/api/kibana_logger/findOne', {
+      $http.get('/api/big_logger/findOne', {
         params: {
           match: root.pagination.currentMatch,
           onlyMatchLines: root.pagination.onlyMatchLines,
@@ -354,7 +356,7 @@ app
 
     $scope.inMemoryEntries = kibanaLoggerSvc.inMemoryEntries;
 
-    $scope.wrap = true;
+    $scope.wrap = false;
 
     $scope.sliderLines = {
       floor: 0,
@@ -795,7 +797,7 @@ app
 
 chrome
   .setBrand({
-    logo: 'url(/plugins/kibana_logger/iconL.png) left no-repeat'
+    logo: 'url(/plugins/big_logger/iconL.png) left no-repeat'
   })
   .setNavBackground('#222222')
   .setRootTemplate(indexView)

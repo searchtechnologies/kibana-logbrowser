@@ -16,8 +16,8 @@ export default function (server, options) {
    ***********************************************/
 
   const getFilePath = function (fileName) {
-    return path.join(__dirname, '..\\filesIds', fileName);
-    //return path.join('c:', 'filesIds', fileName);
+    //return path.join(__dirname, '..\\filesIds', fileName);
+    return path.join('c:', 'filesIds', fileName);
   };
 
   /**
@@ -277,7 +277,7 @@ export default function (server, options) {
    ***********************************************/
 
   server.route({
-    path: '/api/kibana_logger',
+    path: '/api/big_logger',
     method: 'GET',
     handler(req, reply) {
       reply('Kibana Logger online');
@@ -285,7 +285,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/kibana_logger/indices/{day}',
+    path: '/api/big_logger/indices/{day}',
     method: 'GET',
     handler(req, reply) {
 
@@ -308,7 +308,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/kibana_logger/serverTypes/{index}',
+    path: '/api/big_logger/serverTypes/{index}',
     method: 'GET',
     handler(req, reply) {
 
@@ -349,7 +349,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/kibana_logger/servers/{index}/{server_type}',
+    path: '/api/big_logger/servers/{index}/{server_type}',
     method: 'GET',
     handler(req, reply) {
       client.search({
@@ -392,7 +392,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/kibana_logger/files/{index}/{server_type}',
+    path: '/api/big_logger/files/{index}/{server_type}',
     method: 'GET',
     handler(req, reply) {
 
@@ -457,7 +457,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/kibana_logger/browse',
+    path: '/api/big_logger/browse',
     method: 'GET',
     handler(req, reply) {
       requestPageHandler(req, reply);
@@ -465,7 +465,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/kibana_logger/browsePages',
+    path: '/api/big_logger/browsePages',
     method: 'GET',
     handler(req, reply) {
 
@@ -487,7 +487,12 @@ export default function (server, options) {
         }
       };
 
-      if (req.query.files) {
+      if ((req.query.servers) && (req.query.files)) {
+
+        if (!Array.isArray(req.query.servers)) {
+          req.query.servers = [req.query.servers]
+        }
+
         if (!Array.isArray(req.query.files)) {
           req.query.files = [req.query.files]
         }
@@ -497,6 +502,27 @@ export default function (server, options) {
         req.query.files.forEach((file)=> {
           config.body.query.bool.should.push({
             "match": {path: file}
+          });
+        });
+
+        req.query.servers.forEach((server)=> {
+          config.body.query.bool.should.push({
+            "match": {host: server}
+          });
+        });
+
+        config.body.query.bool.minimum_should_match = 3;
+      } else if (req.query.servers) {
+
+        if (!Array.isArray(req.query.servers)) {
+          req.query.servers = [req.query.servers]
+        }
+
+        config.body.query.bool.should.push({"match": {"type": req.query.serverType}});
+
+        req.query.servers.forEach((server)=> {
+          config.body.query.bool.should.push({
+            "match": {host: server}
           });
         });
 
@@ -547,7 +573,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/kibana_logger/find',
+    path: '/api/big_logger/find',
     method: 'GET',
     handler(req, reply) {
 
@@ -569,12 +595,18 @@ export default function (server, options) {
         }
       };
 
-      if (req.query.files) {
+      if ((req.query.servers) && (req.query.files)) {
+
+        if (!Array.isArray(req.query.servers)) {
+          req.query.servers = [req.query.servers]
+        }
+
         if (!Array.isArray(req.query.files)) {
           req.query.files = [req.query.files]
         }
 
         config.body.query.bool.should.push({"match": {"type": req.query.serverType}});
+
         config.body.query.bool.should.push({
           "query_string": {
             "default_field": "message",
@@ -585,6 +617,34 @@ export default function (server, options) {
         req.query.files.forEach((file)=> {
           config.body.query.bool.should.push({
             "match": {path: file}
+          });
+        });
+
+        req.query.servers.forEach((server)=> {
+          config.body.query.bool.should.push({
+            "match": {host: server}
+          });
+        });
+
+        config.body.query.bool.minimum_should_match = 4;
+      } else  if (req.query.servers) {
+
+        if (!Array.isArray(req.query.servers)) {
+          req.query.servers = [req.query.servers]
+        }
+
+        config.body.query.bool.should.push({"match": {"type": req.query.serverType}});
+
+        config.body.query.bool.should.push({
+          "query_string": {
+            "default_field": "message",
+            "query": req.query.query
+          }
+        });
+
+        req.query.servers.forEach((server)=> {
+          config.body.query.bool.should.push({
+            "match": {host: server}
           });
         });
 
@@ -641,7 +701,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/kibana_logger/findOne',
+    path: '/api/big_logger/findOne',
     method: 'GET',
     handler(req, reply) {
 

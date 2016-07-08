@@ -2,7 +2,7 @@
  * Created by ealvarado on 6/28/2016.
  */
 
-const app = require('ui/modules').get('app/kibana_logger', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule']);
+const app = require('ui/modules').get('app/big_logger', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule']);
 
 app
   .controller('PaginationLoggerController', ['$scope', '$attrs', '$parse', function ($scope, $attrs, $parse) {

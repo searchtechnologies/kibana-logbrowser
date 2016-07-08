@@ -1,6 +1,6 @@
-# kibana_logger
+# big_logger
 
-> kibana-logger
+> big-logger
 
 ---
 

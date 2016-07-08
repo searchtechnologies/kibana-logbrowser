@@ -180,7 +180,7 @@
           </div>
 
           <div ng-repeat="entry in buffer track by entry.id" class="log-line"
-               ng-class="{current: entry.active, wrap: wrap}" ng-show="entry.message">
+               ng-class="{current: entry.active, wrap: !wrap}" ng-show="entry.message">
             <span class="timestamp" ng-bind="entry.id"></span>
             <span class="timestamp" ng-bind="entry.timestamp"></span>
             <span class="timestamp" ng-bind="entry.log_time"></span>

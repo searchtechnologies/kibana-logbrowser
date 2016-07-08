@@ -1,7 +1,7 @@
 {
-  "name": "kibana_logger",
+  "name": "big_logger",
   "version": "0.0.0",
-  "description": "kibana-logger",
+  "description": "big-logger",
   "main": "index.js",
   "scripts": {
     "lint": "eslint",
