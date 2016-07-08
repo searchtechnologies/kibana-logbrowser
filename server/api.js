@@ -263,12 +263,6 @@ export default function (server, options) {
       "order": "asc"
     };
 
-    if (type === '_script') {
-      sortType[type].script = "doc.message.value.length() > 40 ? doc.message.value.substring(0,40) : doc.message.value";
-      sortType[type].type = 'string';
-      sortType[type].lang = 'groovy';
-    }
-
     return sortType;
   };
 

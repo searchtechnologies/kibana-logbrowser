@@ -347,7 +347,7 @@ app
       },
       {
         name: 'First 40 characters',
-        opt: '_script'
+        opt: 'message40'
       }
     ];
 
