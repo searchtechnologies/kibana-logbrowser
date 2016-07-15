@@ -271,7 +271,7 @@ export default function (server, options) {
    ***********************************************/
 
   server.route({
-    path: '/api/big_logger',
+    path: '/api/log_browser',
     method: 'GET',
     handler(req, reply) {
       reply('Kibana Logger online');
@@ -279,7 +279,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/big_logger/indices/{day}',
+    path: '/api/log_browser/indices/{day}',
     method: 'GET',
     handler(req, reply) {
 
@@ -302,7 +302,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/big_logger/serverTypes/{index}',
+    path: '/api/log_browser/serverTypes/{index}',
     method: 'GET',
     handler(req, reply) {
 
@@ -343,7 +343,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/big_logger/servers/{index}/{server_type}',
+    path: '/api/log_browser/servers/{index}/{server_type}',
     method: 'GET',
     handler(req, reply) {
       client.search({
@@ -386,7 +386,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/big_logger/files/{index}/{server_type}',
+    path: '/api/log_browser/files/{index}/{server_type}',
     method: 'GET',
     handler(req, reply) {
 
@@ -451,7 +451,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/big_logger/browse',
+    path: '/api/log_browser/browse',
     method: 'GET',
     handler(req, reply) {
       requestPageHandler(req, reply);
@@ -459,7 +459,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/big_logger/browsePages',
+    path: '/api/log_browser/browsePages',
     method: 'GET',
     handler(req, reply) {
 
@@ -567,7 +567,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/big_logger/find',
+    path: '/api/log_browser/find',
     method: 'GET',
     handler(req, reply) {
 
@@ -695,7 +695,7 @@ export default function (server, options) {
   });
 
   server.route({
-    path: '/api/big_logger/findOne',
+    path: '/api/log_browser/findOne',
     method: 'GET',
     handler(req, reply) {
 

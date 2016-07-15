@@ -2,7 +2,7 @@
  * Created by ealvarado on 6/28/2016.
  */
 
-const app = require('ui/modules').get('app/big_logger', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule']);
+const app = require('ui/modules').get('app/log_browser', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule']);
 
 app
   .controller('PaginationLoggerController', ['$scope', '$attrs', '$parse', function ($scope, $attrs, $parse) {
@@ -56,6 +56,9 @@ app
     $scope.noPreviousTen = function () {
       return $scope.page < 10;
     };
+    $scope.noPreviousPage = function () {
+      return $scope.page < this.itemsPerPage;
+    };
     $scope.noNext = function () {
       return $scope.page === $scope.totalPages -1;
     };
@@ -64,6 +67,9 @@ app
     };
     $scope.noNextTen = function () {
       return $scope.page >= $scope.totalPages - 11;
+    };
+    $scope.noNextPage = function () {
+      return $scope.page >= $scope.totalPages - this.itemsPerPage - 1;
     };
 
     $scope.$watch('totalItems', function () {
@@ -94,6 +100,7 @@ app
       restrict: 'EA',
       scope: {
         totalItems: '=',
+        isDisabled: '=',
         firstText: '@',
         previousText: '@',
         nextText: '@',
@@ -101,6 +108,7 @@ app
       },
       require: ['paginationLogger', '?ngModel'],
       controller: 'PaginationLoggerController',
+      controllerAs: 'ctrl',
       templateUrl: 'template/pagination/paginationLogger.html',
       replace: true,
       link: function (scope, element, attrs, ctrls) {
@@ -199,21 +207,21 @@ app
   .run(["$templateCache", function ($templateCache) {
     $templateCache.put("template/pagination/paginationLogger.html",
       "<ul class=\"pagination\">\n" +
-      "  <li ng-if=\"boundaryLinks\" ng-class=\"{disabled: noPrevious()}\"><a class=\"link\" href ng-click=\"selectPage(0)\">{{getText('first')}}</a></li>\n" +
-      "  <li ng-if=\"directionLinks\" ng-class=\"{disabled: noPrevious()}\"><a class=\"link\" href ng-click=\"selectPage(page - 1)\"><span class=\"glyphicon glyphicon-chevron-left\"></a></li>\n" +
-      "  <li ng-class=\"{disabled: noPreviousFive()}\"><a class=\"link\" href ng-click=\"selectPage(page - 5)\"><span class=\"glyphicon glyphicon-chevron-left\"></span> 5</a></li>\n" +
-      "  <li ng-class=\"{disabled: noPreviousTen()}\"><a class=\"link\" href ng-click=\"selectPage(page - 10)\"><span class=\"glyphicon glyphicon-chevron-left\"></span> 10</a></li>\n" +
+      "  <li ng-if=\"boundaryLinks\" ng-class=\"{disabled: noPrevious() || isDisabled}\" ng-disabled=\"isDisabled\"><a class=\"link\" href ng-click=\"selectPage(0)\">{{getText('first')}}</a></li>\n" +
+      "  <li ng-if=\"directionLinks\" ng-class=\"{disabled: noPrevious() || isDisabled}\" ng-disabled=\"isDisabled\"><a class=\"link\" href ng-click=\"selectPage(page - 1)\"><span class=\"glyphicon glyphicon-chevron-left\"></a></li>\n" +
+      "  <li ng-class=\"{disabled: noPreviousFive() || isDisabled}\" ng-disabled=\"isDisabled\"><a class=\"link\" href ng-click=\"selectPage(page - 5)\"><span class=\"glyphicon glyphicon-chevron-left\"></span> 5</a></li>\n" +
+      "  <li ng-class=\"{disabled: noPreviousTen() || isDisabled}\" ng-disabled=\"isDisabled\"><a class=\"link\" href ng-click=\"selectPage(page - 10)\"><span class=\"glyphicon glyphicon-chevron-left\"></span> 10</a></li>\n" +
 
       //"  <li ng-repeat=\"page in pages track by $index\" ng-class=\"{active: page.active}\"><a href ng-click=\"selectPage(page.number)\">{{page.text}}</a></li>\n" +
       "  <li>" +
       "<span class=\"pagination-group\">" +
-      "<input type=\"text\" class=\"form-control \" ng-model=\"page\" ng-change=\"updated()\"> of <span type=\"text\" ng-bind=\"totalPages - 1\" /></span>" +
+      "<input type=\"text\" class=\"form-control \" ng-model=\"page\" ng-change=\"updated()\" ng-disabled=\"isDisabled\"> of <span type=\"text\" ng-bind=\"totalPages - 1\" /></span>" +
       "</span>" +
       "</li>\n" +
 
-      "  <li ng-class=\"{disabled: noNextTen()}\"><a class=\"link\" href ng-click=\"selectPage(page + 10)\">10 <span class=\"glyphicon glyphicon-chevron-right\"></span></a></li>\n" +
-      "  <li ng-class=\"{disabled: noNextFive()}\"><a class=\"link\" href ng-click=\"selectPage(page + 5)\">5 <span class=\"glyphicon glyphicon-chevron-right\"></span></a></li>\n" +
-      "  <li ng-if=\"directionLinks\" ng-class=\"{disabled: noNext()}\"><a class=\"link\" href ng-click=\"selectPage(page + 1)\"><span class=\"glyphicon glyphicon-chevron-right\"></a></li>\n" +
-      "  <li ng-if=\"boundaryLinks\" ng-class=\"{disabled: noNext()}\"><a class=\"link\" href  ng-click=\"selectPage(totalPages - 1)\">{{getText('last')}}</a></li>\n" +
+      "  <li ng-class=\"{disabled: noNextTen() || isDisabled}\" ng-disabled=\"isDisabled\"><a class=\"link\" href ng-click=\"selectPage(page + 10)\">10 <span class=\"glyphicon glyphicon-chevron-right\"></span></a></li>\n" +
+      "  <li ng-class=\"{disabled: noNextFive() || isDisabled}\" ng-disabled=\"isDisabled\"><a class=\"link\" href ng-click=\"selectPage(page + 5)\">5 <span class=\"glyphicon glyphicon-chevron-right\"></span></a></li>\n" +
+      "  <li ng-if=\"directionLinks\" ng-class=\"{disabled: noNext() || isDisabled}\" ng-disabled=\"isDisabled\"><a class=\"link\" href ng-click=\"selectPage(page + 1)\"><span class=\"glyphicon glyphicon-chevron-right\"></a></li>\n" +
+      "  <li ng-if=\"boundaryLinks\" ng-class=\"{disabled: noNext() || isDisabled}\" ng-disabled=\"isDisabled\"><a class=\"link\" href  ng-click=\"selectPage(totalPages - 1)\">{{getText('last')}}</a></li>\n" +
       "</ul>");
   }]);

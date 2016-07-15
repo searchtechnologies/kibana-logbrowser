@@ -133,9 +133,16 @@
 
   .log-line {
     padding: 0 8.5px;
-    display: block;
+    display: table-row;
     width: 100%;
-    border-bottom: 1px solid #a2a2a2;
+
+    &:nth-child(odd) {
+      background-color: #f3f7f8;
+    }
+
+    &:nth-child(even) {
+      background-color: #e1e5e6;
+    }
 
     &.current {
       background-color: @item-active;
@@ -157,25 +164,9 @@
       }
     }
 
-    &.header {
-      height: 3ex;
-      position: relative;
-      font-weight: bold;
-      border-bottom: none;
-    }
-
-    &.header:hover {
-      color: #7b8a8b;
-      background-color: #ecf0f1;
-
-      span {
-        color: #7b8a8b;
-        background-color: #ecf0f1;
-      }
-    }
-
     span {
       padding: 0 .5em;
+      vertical-align: middle;
     }
 
     .timestamp {
@@ -188,6 +179,9 @@
       width: 7em;
       display: inline-block;
       text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .log {
@@ -201,7 +195,38 @@
       }
 
     }
+
+    &.header {
+      display: table-row;
+      height: 3ex;
+      position: relative;
+      font-weight: bold;
+      border-bottom: none;
+
+      .timestamp {
+        width: 18em;
+        display: inline-block;
+        text-align: center;
+      }
+
+      .host {
+        width: 6.5em;
+      }
+
+      .log {
+        display: inline-block;
+        text-align: left;
+
+      }
+    }
   }
 
 }
 
+.unwrap .log {
+  border-top: dotted 1px #4b4b4b;
+  margin-top: .5ex !important;
+  padding-top: .5ex !important;
+  padding-bottom: .5ex !important;
+  display: block !important;
+}

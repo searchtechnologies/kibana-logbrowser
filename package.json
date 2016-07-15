@@ -1,7 +1,7 @@
 {
-  "name": "big_logger",
+  "name": "log_browser",
   "version": "0.0.0",
-  "description": "big-logger",
+  "description": "log-browser",
   "main": "index.js",
   "scripts": {
     "lint": "eslint",

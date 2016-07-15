@@ -9,22 +9,22 @@ const angular = require('angular');
 const chrome = require('ui/chrome');
 const modules = require('ui/modules');
 
-const indexView = require('plugins/big_logger/views/index.html');
+const indexView = require('plugins/log_browser/views/index.html');
 
-require('plugins/big_logger/less/bootstrap-custom.less');
-require('plugins/big_logger/less/big_logger.css');
-require('plugins/big_logger/less/pagination.less');
-require('plugins/big_logger/less/slider-custom.less');
+require('plugins/log_browser/less/bootstrap-custom.less');
+require('plugins/log_browser/less/log_browser.css');
+require('plugins/log_browser/less/pagination.less');
+require('plugins/log_browser/less/slider-custom.less');
 
-require('plugins/big_logger/lib/font-awesome/css/font-awesome.min.css');
+require('plugins/log_browser/lib/font-awesome/css/font-awesome.min.css');
 
-require('plugins/big_logger/lib/lodash/dist/lodash.min.js');
-require('plugins/big_logger/lib/angularjs-slider/dist/rzslider.min.js');
-require('plugins/big_logger/lib/angular-sanitize/angular-sanitize.min.js');
+require('plugins/log_browser/lib/lodash/dist/lodash.min.js');
+require('plugins/log_browser/lib/angularjs-slider/dist/rzslider.min.js');
+require('plugins/log_browser/lib/angular-sanitize/angular-sanitize.min.js');
 
-require('plugins/big_logger/overwrite/pagination.js');
+require('plugins/log_browser/overwrite/pagination.js');
 
-const app = require('ui/modules').get('app/big_logger', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule', 'ngSanitize']);
+const app = require('ui/modules').get('app/log_browser', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule', 'ngSanitize']);
 
 app
   .service('kibanaLoggerSvc', function ($http) {
@@ -70,12 +70,22 @@ app
 
     this.getIndices = function (callback) {
 
-      $http.get('/api/big_logger/indices/' + root.options.date.date).then((response) => {
+      $http.get('/api/log_browser/indices/' + root.options.date.date).then((response) => {
 
         while (root.indices.length > 0)
           root.indices.pop();
 
         if (response.data.indices.length > 0) {
+
+          //Sort Indices
+          response.data.indices = response.data.indices.sort((a,b) => {
+            if (a.name < b.name)
+              return -1;
+            if (a.name > b.name)
+              return 1;
+
+            return 0;
+          });
 
           response.data.indices.forEach(function (obj) {
             root.indices.push(obj)
@@ -106,12 +116,15 @@ app
             root.options.files.pop();
 
         }
+      }, (error) => {
+
+        console.log(error);
       });
     };
 
     this.getServerTypes = function (callback) {
 
-      $http.get('/api/big_logger/serverTypes/' + root.options.index.id).then((response) => {
+      $http.get('/api/log_browser/serverTypes/' + root.options.index.id).then((response) => {
 
         while (root.serverTypes.length > 0)
           root.serverTypes.pop();
@@ -125,12 +138,15 @@ app
 
         if (callback);
         callback()
+      }, (error) => {
+
+        console.log(error);
       });
     };
 
     this.getServers = function (callback) {
 
-      $http.get('/api/big_logger/servers/' + root.options.index.id + '/' + root.options.serverType.id).then((response) => {
+      $http.get('/api/log_browser/servers/' + root.options.index.id + '/' + root.options.serverType.id).then((response) => {
 
         while (root.serverList.length > 0)
           root.serverList.pop();
@@ -152,6 +168,9 @@ app
         if (callback)
           callback();
 
+      }, (error) => {
+
+        console.log(error);
       });
     };
 
@@ -167,7 +186,7 @@ app
         return;
       }
 
-      $http.get('/api/big_logger/files/' + root.options.index.id + '/' + root.options.serverType.id, {
+      $http.get('/api/log_browser/files/' + root.options.index.id + '/' + root.options.serverType.id, {
         params: {
           servers: root.options.servers
         }
@@ -187,6 +206,9 @@ app
         });
 
         //root.options.files.push(root.fileList[0].id);
+      }, (error) => {
+
+        console.log(error);
       });
 
     };
@@ -197,7 +219,7 @@ app
         page = [page];
       }
 
-      $http.get('/api/big_logger/browse', {
+      $http.get('/api/log_browser/browse', {
         params: {
           index: root.options.index.id,
           serverType: root.options.serverType.id,
@@ -227,6 +249,9 @@ app
         if (callback) {
           callback();
         }
+      }, (error) => {
+
+        console.log(error);
       });
 
     };
@@ -237,7 +262,7 @@ app
 
       root.options.loading = true;
 
-      $http.get('/api/big_logger/browsePages', {
+      $http.get('/api/log_browser/browsePages', {
         params: {
           index: root.options.index.id,
           serverType: root.options.serverType.id,
@@ -265,12 +290,20 @@ app
         root.options.loading = false;
 
         root.onLoadLogPages();
+      }, (error) => {
+
+        root.options.loading = false;
+
+        root.onLoadLogPages(true);
+        console.log(error);
       });
     };
 
     this.findMatches = function (callback, no_resp_callback) {
+    if(root.pagination.query.trim() === "")
+        root.pagination.onlyMatchLines = false;
 
-      $http.get('/api/big_logger/find', {
+      $http.get('/api/log_browser/find', {
         params: {
           index: root.options.index.id,
           serverType: root.options.serverType.id,
@@ -299,12 +332,15 @@ app
           }
         }
 
+      }, (error) => {
+
+        console.log(error);
       });
     };
 
     this.findOne = function (callback) {
 
-      $http.get('/api/big_logger/findOne', {
+      $http.get('/api/log_browser/findOne', {
         params: {
           match: root.pagination.currentMatch,
           onlyMatchLines: root.pagination.onlyMatchLines,
@@ -318,6 +354,9 @@ app
         if (callback)
           callback(true);
 
+      }, (error) => {
+
+        console.log(error);
       });
 
     };
@@ -606,7 +645,10 @@ app
      * Listeners
      ****************************************/
 
-    kibanaLoggerSvc.onLoadLogPages = () => {
+    kibanaLoggerSvc.onLoadLogPages = (error) => {
+
+      $scope.sliderLines.disabled = false;
+      $scope.sliderPageSize.disabled = false;
 
       resetBrowser();
 
@@ -614,15 +656,21 @@ app
         $scope.inMemoryEntries.entries.pop();
       }
 
-      kibanaLoggerSvc.getLogLines([0], false, () => {
+      if(!error) {
 
-        $scope.sliderLines.ceil = $scope.pagination.total - 1;
+        kibanaLoggerSvc.getLogLines([0], false, () => {
 
-        fillBuffer()
-      });
+          $scope.sliderLines.ceil = $scope.pagination.total - 1;
+
+          fillBuffer()
+        });
+      }
     };
 
     kibanaLoggerSvc.beforeLoadLogPages = () => {
+
+      $scope.sliderLines.disabled = true;
+      $scope.sliderPageSize.disabled = true;
       buildBuffer();
     };
 
@@ -806,7 +854,7 @@ app
 
 chrome
   .setBrand({
-    logo: 'url(/plugins/big_logger/iconL.png) left no-repeat'
+    logo: 'url(/plugins/log_browser/iconL.png) left no-repeat'
   })
   .setNavBackground('#222222')
   .setRootTemplate(indexView)

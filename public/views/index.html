@@ -12,12 +12,21 @@
           </div>
 
           <div class="row padded border-bottom">
-            <div class="form-inline">
+            <div class="form-inline col-sm-6">
               <div class="form-group col-sm-6">
                 <label for="filterDate">Filter by Date:</label>
                 <select class="form-control" id="filterDate" ng-options="day as day.name for day in timeRanges"
                         ng-model="options.date" style="width: auto;" ng-change="getIndices()">
                 </select>
+              </div>
+            </div>
+
+            <div class="form-inline col-sm-6 text-right">
+              <div class="form-group ">
+                <label for="indexName">Filter:</label>
+                <input type="text" name="indexName" id="indexName" class="form-control"
+                       placeholder="Enter name (wildcards OK)" ng-model="filterIndex"/>
+
               </div>
             </div>
           </div>
@@ -26,7 +35,7 @@
             <div class="row padded">
               <form name="indexForm">
                 <div class="row text-center">
-                  <label class="radio-inline" ng-repeat="index in indices">
+                  <label class="radio-inline" ng-repeat="index in indices  | fltrSearch:'name':filterIndex"">
                     <input name="indexSelected" type="radio" ng-value="index" ng-model="options.index"
                            ng-change="getServerTypes()"> <span
                     ng-bind="index.name"></span>
@@ -91,7 +100,7 @@
             </div>
           </div>
           <div class="row item-container">
-            <item class="col-sm-3 no-padding" ng-repeat="file in fileList | fltrSearch:'name':filterFile" item="file"
+            <item class="col-sm-6 no-padding" ng-repeat="file in fileList | fltrSearch:'name':filterFile" item="file"
                   list="options.files" item-type="file"></item>
           </div>
         </div>
@@ -109,20 +118,20 @@
             <div class="form-group">
               <label>Sort:</label>
               <select class="form-control" ng-options="sort as sort.name for sort in sortTypes"
-                      ng-model="pagination.sortType" style="width: auto" ng-change="getAllLogPages()">
+                      ng-model="pagination.sortType" style="width: auto" ng-change="getAllLogPages()" ng-disabled="options.loading">
               </select>
             </div>
           </div>
 
           <div class="btn-group" style="width: 19em;" role="group" aria-label="...">
             <button type="button" class="btn btn-default" data-toggle="button" ng-class="{active: wrap}"
-                    ng-click="toogleWrap()">
+                    ng-click="toogleWrap()" ng-disabled="options.loading">
               <i class="fa" ng-class="{'fa-check-circle': wrap, 'fa-circle-o': !wrap}" aria-hidden="true"></i> Wrap
             </button>
             <button type="button" class="btn btn-default" data-toggle="button"
                     ng-class="{active: pagination.onlyMatchLines}"
                     ng-click="toggleOnlyMatchLines()"
-                    ng-disabled="pagination.currentMatch === -1">
+                    ng-disabled="pagination.currentMatch === -1 || options.loading">
               <i class="fa"
                  ng-class="{'fa-check-circle': pagination.onlyMatchLines, 'fa-circle-o': !pagination.onlyMatchLines}"
                  aria-hidden="true"></i> Only Matches
@@ -135,14 +144,14 @@
               <div class="input-group">
                 <input type="text" name="fileName" class="form-control"
                        placeholder="Enter name (wildcards OK)" ng-model="pagination.query"
-                       ng-change="debouncedFindMatches()"/>
+                       ng-change="debouncedFindMatches()" ng-disabled="options.loading"/>
                 <span class="input-group-btn text-left">
                   <button class="btn btn-primary" ng-click="findOneNext(pagination.currentMatch + 1)"
-                          ng-disabled="pagination.currentMatch === -1">
+                          ng-disabled="pagination.currentMatch === -1 || options.loading">
                     <span class="glyphicon glyphicon-chevron-down"></span>
                   </button>
                   <button class="btn btn-primary" ng-click="findOneNext(pagination.currentMatch - 1)"
-                          ng-disabled="pagination.currentMatch === -1">
+                          ng-disabled="pagination.currentMatch === -1 || options.loading">
                     <span class="glyphicon glyphicon-chevron-up"></span>
                   </button>
                 </span>
@@ -158,7 +167,7 @@
           <div class="text-center" style="width: 40em;">
             <pagination-logger items-per-page="1" total-items="pagination.total"
                                ng-model="pagination.line" max-size="pagination.maxSize" class="pagination-sm"
-                               boundary-links="true" ng-change="loadMore()"></pagination-logger>
+                               boundary-links="true" ng-change="loadMore()" is-disabled="options.loading"></pagination-logger>
           </div>
 
           <div class="form-inline text-left">
@@ -177,7 +186,6 @@
         <div class="log-container col-sm-12 no-padding">
 
           <div id="log-line-header" class="log-line header">
-            <span class="timestamp text-center">Id</span>
             <span class="timestamp text-center">Ingestion Timestamp</span>
             <span class="timestamp text-center">File Timestamp</span>
             <span class="host text-center">Host</span>
@@ -193,11 +201,10 @@
 
 
             <div ng-repeat="entry in buffer track by entry.id" class="log-line"
-                 ng-class="{current: entry.active, wrap: !wrap}" ng-show="entry.message">
-              <span class="timestamp" ng-bind="entry.id"></span>
+                 ng-class="{current: entry.active, wrap: !wrap, unwrap: wrap}" ng-show="entry.message">
               <span class="timestamp" ng-bind="entry.timestamp"></span>
               <span class="timestamp" ng-bind="entry.log_time"></span>
-              <span class="host" ng-bind="entry.host"></span>
+              <span class="host" tooltip="{{entry.host}}" ng-bind="entry.host"></span>
               <span class="log" ng-bind-html="entry.message | to_trusted"></span>
             </div>
           </div>

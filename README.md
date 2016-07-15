@@ -1,6 +1,6 @@
-# big_logger
+# log_browser
 
-> big-logger
+> log-browser
 
 ---
 
