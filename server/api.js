@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const moment = require('moment');
 const request = require('sync-request');
 let utils = require('requirefrom')('src/utils');
 let fromRoot = utils('fromRoot');
@@ -124,7 +125,13 @@ export default function (server, options) {
 
     var file = getFilePath(fileName);
 
-    var data = fs.readFileSync(file, 'utf8');
+    var data;
+
+    try{
+       data = fs.readFileSync(file, 'utf8');
+    }catch (err) {
+      throw new Error('No results to show');
+    }
     var lines = data.split('\n');
     lines.pop();
 
@@ -198,7 +205,21 @@ export default function (server, options) {
       fileToUse = 'matches' + req.query.timestamp + '.txt'
     }
 
-    var page = getPage(req.query.page || [0], req.query.pageSize, fileToUse);
+    var page;
+
+    try {
+      page = getPage(req.query.page || [0], req.query.pageSize, fileToUse);
+    }catch (error) {
+
+      reply({
+        error: {
+          msg: error.toString().replace('Error: ', '')
+        }
+      });
+      return;
+    }
+
+
 
     var config = {
       index: req.query.index,
@@ -527,6 +548,38 @@ export default function (server, options) {
 
       config.body.sort.push(getSort(req.query.sortType));
 
+      //Convert Times to JSON
+      req.query.startTime = JSON.parse(req.query.startTime);
+      req.query.endTime = JSON.parse(req.query.endTime);
+
+      //Add Filter is necessary
+      if(req.query.startTime.use || req.query.endTime.use) {
+
+        var filtered = {
+          "query": config.body.query,
+          "filter": {
+            "range" : {
+              "@timestamp" : {
+                  "format": "yyyy-MM-dd'T'HH:mm:ss"
+              }
+            }
+          }
+        };
+
+        var date = moment(new Date(req.query.date)).format('YYYY-MM-DD') + 'T';
+
+        if(req.query.startTime.use) {
+          filtered.filter.range["@timestamp"].gte = date + req.query.startTime.hour + ':' + req.query.startTime.minute + ':00' ;
+        }
+
+        if (req.query.endTime.use) {
+          filtered.filter.range["@timestamp"].lte = date + req.query.endTime.hour + ':' + req.query.endTime.minute + ':59' ;
+        }
+
+
+        config.body.query = {"filtered" : filtered};
+      }
+
       deleteFile(fileName);
 
       client.search(config, function (error, resp) {
@@ -655,6 +708,37 @@ export default function (server, options) {
       }
 
       config.body.sort.push(getSort(req.query.sortType));
+
+      //Convert Times to JSON
+      req.query.startTime = JSON.parse(req.query.startTime);
+      req.query.endTime = JSON.parse(req.query.endTime);
+
+      //Add Filter is necessary
+      if(req.query.startTime.use || req.query.endTime.use) {
+
+        var filtered = {
+          "query": config.body.query,
+          "filter": {
+            "range" : {
+              "@timestamp" : {
+                "format": "yyyy-MM-dd'T'HH:mm:ss"
+              }
+            }
+          }
+        };
+
+        var date = moment(new Date(req.query.date)).format('YYYY-MM-DD') + 'T';
+
+        if(req.query.startTime.use) {
+          filtered.filter.range["@timestamp"].gte = date + req.query.startTime.hour + ':' + req.query.startTime.minute + ':00' ;
+        }
+
+        if (req.query.endTime.use) {
+          filtered.filter.range["@timestamp"].lte = date + req.query.endTime.hour + ':' + req.query.endTime.minute + ':59' ;
+        }
+
+        config.body.query = {"filtered" : filtered};
+      }
 
       deleteFile(fileName);
 

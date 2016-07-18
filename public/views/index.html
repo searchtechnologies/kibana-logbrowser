@@ -12,8 +12,8 @@
           </div>
 
           <div class="row padded border-bottom">
-            <div class="form-inline col-sm-6">
-              <div class="form-group col-sm-6">
+            <div class="form-inline col-sm-4">
+              <div class="form-group col-sm-12">
                 <label for="filterDate">Filter by Date:</label>
                 <select class="form-control" id="filterDate" ng-options="day as day.name for day in timeRanges"
                         ng-model="options.date" style="width: auto;" ng-change="getIndices()">
@@ -21,7 +21,39 @@
               </div>
             </div>
 
-            <div class="form-inline col-sm-6 text-right">
+            <div class="form-inline col-sm-4">
+
+              <div class="col-sm-6">
+                <label>Start:</label>
+                <div class="input-group">
+                  <span class="input-group-addon">
+                    <input type="checkbox" aria-label="..." ng-model="options.timeStart.use">
+                  </span>
+                  <select class="form-control" style="width: auto;" ng-options="n as n for n in time.hours" ng-model="options.timeStart.hour"></select>
+                  <span class="input-group-addon" style="padding: 0 .25em;">
+                    :
+                  </span>
+                  <select class="form-control" style="width: auto;" ng-options="n as n for n in time.minutes" ng-model="options.timeStart.minute"></select>
+                </div>
+              </div>
+
+
+              <div class="col-sm-6">
+                <label>End:</label>
+                <div class="input-group">
+                  <span class="input-group-addon">
+                    <input type="checkbox" aria-label="..." ng-model="options.timeEnd.use">
+                  </span>
+                  <select class="form-control" style="width: auto;" ng-options="n as n for n in time.hours" ng-model="options.timeEnd.hour"></select>
+                  <span class="input-group-addon" style="padding: 0 .25em;">
+                    :
+                  </span>
+                  <select class="form-control" style="width: auto;" ng-options="n as n for n in time.minutes" ng-model="options.timeEnd.minute"></select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-inline col-sm-4 text-right">
               <div class="form-group ">
                 <label for="indexName">Filter:</label>
                 <input type="text" name="indexName" id="indexName" class="form-control"

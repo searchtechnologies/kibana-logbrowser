@@ -35,6 +35,16 @@ app
 
     this.options = {
       date: undefined,
+      timeStart: {
+        use: true,
+        hour: 0,
+        minute: 0
+      },
+      timeEnd: {
+        use: true,
+        hour: 23,
+        minute: 59
+      },
       index: undefined,
       serverType: undefined,
       servers: [],
@@ -236,6 +246,12 @@ app
         }
       }).then((response) => {
 
+        if (response.data.error) {
+          alert(response.data.error.msg);
+          root.options.loading = false;
+          return;
+        }
+
         if (response.data.total)
           root.pagination.total = response.data.total;
 
@@ -274,7 +290,10 @@ app
           sortType: root.pagination.sortType.opt,
           files: root.options.files,
           servers: root.options.servers,
-          timestamp: timestamp
+          timestamp: timestamp,
+          startTime: root.options.timeStart,
+          endTime: root.options.timeEnd,
+          date: root.options.date.date
         }
       }).then((response) => {
 
@@ -315,7 +334,10 @@ app
           query: root.pagination.query,
           files: root.options.files,
           servers: root.options.servers,
-          timestamp: timestamp
+          timestamp: timestamp,
+          startTime: root.options.timeStart,
+          endTime: root.options.timeEnd,
+          date: root.options.date.date
         }
       }).then((response) => {
 
@@ -684,6 +706,19 @@ app
   .controller('kibanaLoggerSetting', ['$scope', 'kibanaLoggerSvc', function ($scope, kibanaLoggerSvc) {
 
     $scope.indices = kibanaLoggerSvc.indices;
+
+    $scope.time = {
+      hours : [],
+      minutes : []
+    };
+
+    for(let i =0; i < 24; i++) {
+      $scope.time.hours.push(i)
+    }
+
+    for(let i =0; i < 60; i++) {
+      $scope.time.minutes.push(i)
+    }
 
     var today = moment().startOf('day');
 

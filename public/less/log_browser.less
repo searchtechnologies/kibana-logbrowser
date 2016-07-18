@@ -230,3 +230,41 @@
   padding-bottom: .5ex !important;
   display: block !important;
 }
+
+.time-filter {
+
+  float: right;
+
+  td, a {
+    padding: 0;
+    display: inline-block;
+    vertical-align: top;
+  }
+
+  input {
+    width: 100% !important;
+    padding: 0;
+    height: 3ex;
+  }
+
+  tr {
+    height: 3ex;
+    display: block;
+
+    &.text-center {
+
+      height: 2ex;
+
+      td, a {
+        height: 0;
+        width: 2em;
+      }
+
+      .glyphicon {
+        top: 0;
+        line-height: 0;
+      }
+    }
+
+  }
+}

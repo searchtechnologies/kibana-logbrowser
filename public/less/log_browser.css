@@ -190,3 +190,33 @@
   padding-bottom: .5ex !important;
   display: block !important;
 }
+.time-filter {
+  float: right;
+}
+.time-filter td,
+.time-filter a {
+  padding: 0;
+  display: inline-block;
+  vertical-align: top;
+}
+.time-filter input {
+  width: 100% !important;
+  padding: 0;
+  height: 3ex;
+}
+.time-filter tr {
+  height: 3ex;
+  display: block;
+}
+.time-filter tr.text-center {
+  height: 2ex;
+}
+.time-filter tr.text-center td,
+.time-filter tr.text-center a {
+  height: 0;
+  width: 2em;
+}
+.time-filter tr.text-center .glyphicon {
+  top: 0;
+  line-height: 0;
+}
