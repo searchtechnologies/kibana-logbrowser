@@ -174,7 +174,7 @@ app
       });
     };
 
-    this.getFiles = function (callback) {
+    this.getFiles = function (callback, preserve) {
 
       if (root.options.servers.length === 0) {
         while (root.fileList.length > 0)
@@ -195,8 +195,10 @@ app
         while (root.fileList.length > 0)
           root.fileList.pop();
 
-        while (root.options.files.length > 0)
-          root.options.files.pop();
+        if(!preserve) {
+          while (root.options.files.length > 0)
+            root.options.files.pop();
+        }
 
         response.data.files.forEach((file) => {
           root.fileList.push({
@@ -212,6 +214,8 @@ app
       });
 
     };
+
+    this.debouncedGetFiles = _.debounce(this.getFiles, 250);
 
     this.getLogLines = function (page, front, callback) {
 
@@ -709,26 +713,97 @@ app
     $scope.buffer = [];
 
 
+    $scope.serverSelectAll = () => {
+
+      while($scope.options.servers.length > 0)
+        $scope.options.servers.pop();
+
+      $scope.serverList.forEach((server) => {
+        server.active = true;
+        $scope.options.servers.push(server.id);
+      });
+
+      kibanaLoggerSvc.debouncedGetFiles();
+    };
+
+    $scope.serverDeselectAll = () => {
+
+      while($scope.options.servers.length > 0)
+        $scope.options.servers.pop();
+
+      $scope.serverList.forEach((server) => {
+        server.active = false;
+      });
+
+      while($scope.options.files.length > 0)
+        $scope.options.files.pop();
+
+      while($scope.fileList.length > 0)
+        $scope.fileList.pop();
+    };
+
+    $scope.fileSelectAll = () => {
+
+      while($scope.options.files.length > 0)
+        $scope.options.files.pop();
+
+      $scope.fileList.forEach((file) => {
+        file.active = true;
+        $scope.options.files.push(file.id);
+      });
+
+    };
+
+    $scope.fileDeselectAll = () => {
+
+      while($scope.options.files.length > 0)
+        $scope.options.files.pop();
+
+      $scope.fileList.forEach((file) => {
+        file.active = false;
+      });
+
+    };
+
     /**
      * Set Defaults
      */
 
+
+
     $scope.getServerTypes = ()=> {
       kibanaLoggerSvc.getServerTypes(() => {
         kibanaLoggerSvc.getServers(() => {
-          kibanaLoggerSvc.getFiles();
+          kibanaLoggerSvc.debouncedGetFiles();
         });
       });
     };
 
     $scope.getServers = () => {
       kibanaLoggerSvc.getServers(() => {
-        kibanaLoggerSvc.getFiles();
+        kibanaLoggerSvc.debouncedGetFiles();
       });
     };
 
     $scope.$watch('serverList', (newVal, oldVal) => {
-      kibanaLoggerSvc.getFiles();
+
+
+      if(newVal.length !== oldVal.length) {
+        kibanaLoggerSvc.debouncedGetFiles();
+        return;
+      }
+
+      var check = false;
+
+      for(let i = 0; i < newVal.length; i++) {
+
+        if(newVal[i].id !== oldVal[i].id) {
+          check = true;
+        }
+      }
+
+      if(check)
+        kibanaLoggerSvc.debouncedGetFiles();
     }, true);
 
     $scope.options = kibanaLoggerSvc.options;
@@ -739,7 +814,7 @@ app
       kibanaLoggerSvc.getIndices(() => {
         kibanaLoggerSvc.getServerTypes(() => {
           kibanaLoggerSvc.getServers(() => {
-            kibanaLoggerSvc.getFiles();
+            kibanaLoggerSvc.debouncedGetFiles();
           })
         });
       });
@@ -758,40 +833,49 @@ app
         item: '=',
         itemType: '@'
       },
-      template: '<a class="col-sm-12 text-center item" href="" ng-bind="item.name" ng-class="{active: active}" ng-click="toggle()"></a>',
+      template: '<a class="col-sm-12 text-center item" href="" ng-bind="item.name" ng-class="{active: item.active}" ng-click="toggle()"></a>',
       controller: ['$scope', 'kibanaLoggerSvc', function ($scope, kibanaLoggerSvc) {
-
-        $scope.active = false;
 
         var i = 0;
 
         for (i = 0; i < $scope.list.length; i++) {
 
           if (JSON.stringify($scope.item.id) === JSON.stringify($scope.list[i])) {
-            $scope.active = true;
+            $scope.item.active = true;
             break;
           }
         }
 
         $scope.toggle = function () {
 
-          if ($scope.active) {
+          if ($scope.item.active) {
 
             for (i = 0; i < $scope.list.length; i++) {
 
               if ($scope.item.id === $scope.list[i]) {
                 $scope.list.splice(i, 1);
-                $scope.active = false;
+                $scope.item.active = false;
               }
             }
 
           } else {
             $scope.list.push($scope.item.id);
-            $scope.active = true;
+            $scope.item.active = true;
           }
 
-          if ($scope.itemType === 'host')
-            kibanaLoggerSvc.getFiles();
+          if ($scope.itemType === 'host') {
+
+            if (kibanaLoggerSvc.options.servers.length === 0) {
+              while (kibanaLoggerSvc.fileList.length > 0)
+                kibanaLoggerSvc.fileList.pop();
+
+              while (kibanaLoggerSvc.options.files.length > 0)
+                kibanaLoggerSvc.options.files.pop();
+
+              return;
+            }
+            kibanaLoggerSvc.debouncedGetFiles(undefined, true);
+          }
         }
 
       }]
@@ -804,7 +888,6 @@ app
     return function (items, field, searchFilter) {
 
       var result = [];
-      var addGroup = false;
 
       if (!searchFilter) {
         return items;
@@ -820,20 +903,6 @@ app
 
           if (item[field].toLowerCase().search(patt) !== -1) {
             result.push(item);
-          }
-
-          if (item["cardType"] == "group") { // Continue checking inside the Groups
-            angular.forEach(item.contentSource, function (groupItem) {
-
-              if (groupItem[field].toLowerCase().search(patt) !== -1) {
-                addGroup = true;
-              }
-            });
-
-            if (addGroup && !inArray(item, result)) { // Only add the group to the result
-              result.push(item);
-              addGroup = false; // Reset variable to check another group
-            }
           }
         });
 
