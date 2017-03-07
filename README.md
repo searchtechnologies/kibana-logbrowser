@@ -1,31 +1,49 @@
-# log_browser
+# The Kibana Log Browser browser [Search Technologies](http://www.searchtechnologies.com) 
 
-> Kibana Big Data Log Browser
+> Browse your log files directly from Elasticsearch Kibana
 
----
+# Why?
 
-## development
+ - Replicate Unix-Style browsing in a web browser
+ 
+   - Browse log lines like you would using **_more_**
+ 
+ - More secure:
+ 
+   - No need to log onto the servers and do **_more_**, **_tail_** & **_grep_**
+   
+ - Easily browse combined logs from across multiple servers
+ 
+   - Browse multiple logs from multiple servers together
+   
+   - Especially important for clustered arrays of machines
+   
+ - Intended for troubleshooting by developers
+ 
+   - Find a log line, browse it in context, scroll up and down
 
-See the [kibana contributing guide](https://github.com/elastic/kibana/blob/master/CONTRIBUTING.md) for instructions setting up your development environment. Once you have completed that, use the following npm tasks.
+# Installation 
 
-  - `npm start`
+Under construction, under construction
 
-    Start kibana and have it include this plugin
 
-  - `npm start -- --config kibana.yml`
 
-    You can pass any argument that you would normally send to `bin/kibana` by putting them after `--` when running `npm start`
+# License
 
-  - `npm run build`
+<pre>
+This software is licensed under the Apache License, version 2 ("ALv2"), quoted below.
 
-    Build a distributable archive
+Copyright 2017 Search Technologies Corporation <https://www.searchtechnologies.com>
 
-  - `npm run test:browser`
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy of
+the License at
 
-    Run the browser tests in a real web browser
+    http://www.apache.org/licenses/LICENSE-2.0
 
-  - `npm run test:server`
-
-    Run the server tests using mocha
-
-For more information about any of these commands run `npm run ${task} -- --help`.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations under
+the License.
+</pre>
