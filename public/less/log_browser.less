@@ -147,6 +147,10 @@
       display: table-row;
       width: 100%;
 
+      &.unwrap {
+        display: block;
+      }
+
       &:nth-child(odd) {
         background-color: #f3f7f8;
       }
@@ -249,6 +253,8 @@
   padding-top: .5ex !important;
   padding-bottom: .5ex !important;
   display: block !important;
+  word-break: break-all !important;
+  word-wrap: break-word !important;
 }
 
 .time-filter {
