@@ -1,4 +1,4 @@
-# The Kibana Log Browser browser [Search Technologies](http://www.searchtechnologies.com) 
+# The Kibana Log Browser from [Search Technologies](http://www.searchtechnologies.com) 
 
 > Browse your log files directly from Elasticsearch Kibana
 
@@ -21,12 +21,48 @@
  - Intended for troubleshooting by developers
  
    - Find a log line, browse it in context, scroll up and down
+   
+# Screen Shots
+
+UNDED CONSTRUCTION, UNDER CONSTRUCTION 
+
+
+# Requirements
+
+1. Kibana 5
+ 
+2. You must have the following index fields:
+
+   - **message** – Holds the text of the log line
+
+      - Can be multi-line
+      
+   - **@timestamp** – The ingestion time of the log line
+   
+      - Automatically added by logstash
+      
+   - **host** – The server host which gathered the log
+   
+      - IP or hostname
+
+   - **log_time** – The time parsed out of the log line
+   
+   - **type* – The type of log file
+   
+      - Used to browse log files of a particular type
+      
+      - Examples:  apache, nginx, myapp1, myapp2, etc.
+
+   - **source** - the filename path of the log file on the server
+ 
 
 # Installation 
 
-Under construction, under construction
+For Kibana 5:
 
-
+```
+kibana-plugin install https://github.com/searchtechnologies/kibana-logbrowser/releases/download/1.0.0/log_browser.zip 
+```
 
 # License
 
