@@ -1,9 +1,9 @@
-<div class="container no-padding" ng-controller="kibanaLogger">
+<div class="container no-padding" ng-controller="logBrowser">
   <tabset justified="true">
 
     <tab heading="Choose Files to Browse" active="true">
 
-      <div ng-controller="kibanaLoggerSetting" style="padding: 0 1em">
+      <div ng-controller="logBrowserSetting" style="padding: 0 1em">
 
         <div class="col-sm-12 bordered" style="margin-bottom: 3ex;">
 
@@ -165,7 +165,7 @@
 
     <tab heading="Browse Selected Files" select="loadBrowse()" disabled="!options.index">
 
-      <div ng-controller="kibanaLoggerBrowser">
+      <div ng-controller="logBrowserBrowser">
 
         <div class="row log-controls">
           <div class="form-inline text-right" style="width: 19em;">
@@ -237,35 +237,39 @@
 
         <!-- Log Lines -->
 
-        <div class="log-container col-sm-12 no-padding">
+        <div class="log-display">
+          <div class="log-container col-sm-12 no-padding">
 
-          <div id="log-line-header" class="log-line header">
-            <span class="timestamp text-center">Ingestion Timestamp</span>
-            <span class="timestamp text-center">File Timestamp</span>
-            <span class="host text-center">Host</span>
-            <span class="log">Log Message</span>
-          </div>
-
-          <div id="log-line-container" class="log-line-container col-sm-12 no-padding">
-
-            <div class="text-center" ng-if="options.loading" style="padding: 2ex 0;">
-              <i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><span style="font-size: 23pt; margin-left: .25em;">Loading Log Entries</span>
+            <div id="log-line-header" class="log-line header">
+              <span class="timestamp text-center">Ingestion Timestamp</span>
+              <span class="timestamp text-center">File Timestamp</span>
+              <span class="host text-center">Host</span>
+              <span class="log">Log Message</span>
             </div>
 
+            <div id="log-line-container" class="log-line-container col-sm-12 no-padding">
+
+              <div class="text-center" ng-if="options.loading" style="padding: 2ex 0;">
+                <i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><span style="font-size: 23pt; margin-left: .25em;">Loading Log Entries</span>
+              </div>
 
 
-            <div ng-repeat="entry in buffer track by entry.id" class="log-line"
-                 ng-class="{current: entry.active, wrap: !wrap, unwrap: wrap}" ng-show="entry.message">
-              <span class="timestamp" ng-bind="entry.timestamp"></span>
-              <span class="timestamp" ng-bind="entry.log_time"></span>
-              <span class="host" tooltip="{{entry.host}}" ng-bind="entry.host"></span>
-              <span class="log" ng-bind-html="entry.message | to_trusted"></span>
+
+              <div ng-repeat="entry in buffer track by entry.id" class="log-line"
+                   ng-class="{current: entry.active, wrap: !wrap, unwrap: wrap}" ng-show="entry.message">
+                <span class="timestamp" ng-bind="entry.timestamp"></span>
+                <span class="timestamp" ng-bind="entry.log_time"></span>
+                <span class="host" tooltip="{{entry.host}}" ng-bind="entry.host"></span>
+                <span class="log" ng-bind-html="entry.message | to_trusted"></span>
+              </div>
             </div>
           </div>
+          <div class="col-sm-1 log-container-slider no-padding text-right">
+            <rzslider rz-slider-model="pagination.line" rz-slider-options="sliderLines"></rzslider>
+          </div>
         </div>
-        <div class="col-sm-1 log-container-slider no-padding text-right">
-          <rzslider rz-slider-model="pagination.line" rz-slider-options="sliderLines"></rzslider>
-        </div>
+
+
       </div>
 
     </tab>

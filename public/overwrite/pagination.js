@@ -1,8 +1,9 @@
 /**
  * Created by ealvarado on 6/28/2016.
  */
+import modules from 'ui/modules';
 
-const app = require('ui/modules').get('app/log_browser', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule']);
+const app = modules.get('app/log_browser', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule']);
 
 app
   .controller('PaginationLoggerController', ['$scope', '$attrs', '$parse', function ($scope, $attrs, $parse) {
