@@ -1,6 +1,6 @@
 {
   "name": "log_browser",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Kibana Big Data Log Browser",
   "main": "index.js",
   "kibana": {

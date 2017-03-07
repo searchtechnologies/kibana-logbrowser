@@ -1,6 +1,6 @@
 {
   "name": "log_browser",
-  "description": "log-browser",
+  "description": "log_browser",
   "main": "index.js",
   "authors": [
     "ealvarado <ealvarado@searchtechnologies.com>"
