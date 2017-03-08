@@ -21,10 +21,52 @@
  - Intended for troubleshooting by developers
  
    - Find a log line, browse it in context, scroll up and down
-   
+
 # Screen Shots
 
 UNDED CONSTRUCTION, UNDER CONSTRUCTION 
+
+# Features
+
+ - A browser for host names
+ 
+   - Filter by name, date, server type
+ 
+   - Select multiple hosts
+ 
+ -  A browser for log files
+ 
+   - Filter by name
+   
+   - Select multiple files (browse all files together)
+   
+ -  Browse log lines
+
+ -  Paging
+ 
+   -  5 lines, 10 lines, to a line
+   
+   -  Control page size
+   
+-  Find In File
+
+   -  Uses full text search
+   
+   -  Show highlighted text
+   
+   -  Show only lines which match, or all lines
+   
+   -  Jump to next / previous match
+   
+-  Wrap lines (or not)
+
+-  Sort
+
+-  Jump to line (infinite scroll bar)
+
+-  Uses Cursors to scan through long lists
+
+-  Constructs a line # / ID mapping for faster scrolling
 
 
 # Requirements
@@ -37,6 +79,10 @@ UNDED CONSTRUCTION, UNDER CONSTRUCTION
 
       - Can be multi-line
       
+   - **message40** – Holds the first 40 characters of message
+
+      - Used for sorting
+      
    - **@timestamp** – The ingestion time of the log line
    
       - Automatically added by logstash
@@ -47,15 +93,36 @@ UNDED CONSTRUCTION, UNDER CONSTRUCTION
 
    - **log_time** – The time parsed out of the log line
    
-   - **type* – The type of log file
+   - **type** – The type of server
    
       - Used to browse log files of a particular type
       
       - Examples:  apache, nginx, myapp1, myapp2, etc.
 
    - **source** - the filename path of the log file on the server
+   
+      - Note: This is not friendly with "\\" (backslash), we recommend replacing backslash with forward slash
  
+## Mappings
+ 
+```JSON
+{
+  "host": { "type": "keyword" }, 
+  
+  "message": { "type": "text" }, 
 
+  "message40": { "type": "keyword" }, 
+
+  "source": { "type": "keyword" }, 
+  
+  "type": { "type": "keyword" } ,
+
+  "@timestamp": { "type": "date" }, 
+
+  "log_time": { "type": "date" }
+}
+```
+ 
 # Installation 
 
 For Kibana 5:
@@ -69,7 +136,7 @@ kibana-plugin install https://github.com/searchtechnologies/kibana-logbrowser/re
 <pre>
 This software is licensed under the Apache License, version 2 ("ALv2"), quoted below.
 
-Copyright 2017 Search Technologies Corporation <https://www.searchtechnologies.com>
+Copyright 2017 Search Technologies Corporation (<a href="https://www.searchtechnologies.com">https://www.searchtechnologies.com</a>)
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not
 use this file except in compliance with the License. You may obtain a copy of
