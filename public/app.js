@@ -724,7 +724,7 @@ app
             $scope.time.minutes.push(i)
         }
 
-        let today = moment().startOf('day');
+        let today = moment().zone(0).startOf('day');
 
         $scope.timeRanges = [{
             name: today.format('MMM, dddd DD') + ' (Today)',
@@ -733,7 +733,7 @@ app
 
         for (let i = 1; i < 31; i++) {
 
-            let day = moment(today).subtract(i, 'days');
+            let day = moment(today).zone(0).subtract(i, 'days');
 
             $scope.timeRanges.push({
                 name: day.format('MMM, dddd DD'),
