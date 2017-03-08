@@ -24,8 +24,9 @@
 
 # Screen Shots
 
-Inline-style: 
 ![alt text](https://cloud.githubusercontent.com/assets/1406946/23687388/3d6eaf50-037c-11e7-8e37-970e8cfc3fa5.PNG "Shows selecting servers and files")
+
+![alt text](https://cloud.githubusercontent.com/assets/1406946/23687389/3d726708-037c-11e7-8655-c9c529fcc1d7.PNG "Browsing a log file and log file controls") 
 
 ![alt text](https://cloud.githubusercontent.com/assets/1406946/23687390/3d7928d6-037c-11e7-8b61-05883a147a3f.PNG "Search and highlight")
 
