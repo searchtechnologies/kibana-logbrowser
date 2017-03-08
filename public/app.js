@@ -63,7 +63,7 @@ app
             sortType: undefined,
             line: 0,
             maxSize: 5,
-            pageSize: 50,
+            pageSize: 25,
             query: '',
             totalMatches: 0,
             currentMatch: -1,
@@ -453,9 +453,9 @@ app
         };
 
         $scope.sliderPageSize = {
-            floor: 50,
-            ceil: 500,
-            step: 50,
+            floor: 25,
+            ceil: 250,
+            step: 25,
             interval: 350,
             vertical: false,
             keyboardSupport: true,
