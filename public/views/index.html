@@ -219,7 +219,7 @@
           </div>
 
           <div class="text-center" style="width: 40em;">
-            <pagination-logger items-per-page="1" total-items="pagination.total"
+            <pagination-logger items-per-page="1" page-size="pagination.pageSize" total-items="pagination.total"
                                ng-model="pagination.line" max-size="pagination.maxSize" class="pagination-sm"
                                boundary-links="true" ng-change="loadMore()" is-disabled="options.loading"></pagination-logger>
           </div>
