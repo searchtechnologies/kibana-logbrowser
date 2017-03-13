@@ -253,8 +253,6 @@
                 <i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><span style="font-size: 23pt; margin-left: .25em;">Loading Log Entries</span>
               </div>
 
-
-
               <div ng-repeat="entry in buffer track by entry.id" class="log-line"
                    ng-class="{current: entry.active, wrap: !wrap, unwrap: wrap}" ng-show="entry.message">
                 <span class="timestamp" ng-bind="entry.timestamp"></span>

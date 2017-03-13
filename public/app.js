@@ -18,12 +18,10 @@ import "plugins/log_browser/lib/lodash/dist/lodash.min.js";
 import "plugins/log_browser/lib/angularjs-slider/dist/rzslider.min.js";
 import "plugins/log_browser/lib/angular-sanitize/angular-sanitize.min.js";
 import "plugins/log_browser/lib/angular-bootstrap/ui-bootstrap-tpls.min.js";
-
-import 'plugins/log_browser/overwrite/pagination.js';
+import "plugins/log_browser/overwrite/pagination.js";
 
 
 const app = modules.get('app/log_browser', ['ui.bootstrap', 'ui.bootstrap.pagination', 'rzModule', 'ngSanitize']);
-//const app = modules.get('app/log_browser', ['rzModule', 'ngSanitize']);
 
 app
     .service('logBrowserSvc', ['$http', '$location', function ($http, $location) {
@@ -150,8 +148,9 @@ app
                 if (root.serverTypes.length > 0)
                     root.options.serverType = root.serverTypes[0];
 
-                if (callback);
-                    callback()
+                if (callback)
+                    callback();
+
             }, (error) => {
 
                 console.log(error);
@@ -391,6 +390,25 @@ app
 
         };
 
+        this.focusLine = _.debounce(function () {
+
+            let container = $('#log-line-container');
+            let line = $('.log-line.current')[0];
+
+            if (!line)
+                return;
+
+            let offset = line.offsetHeight * 2;
+            let relativePos = line.offsetTop - container.scrollTop();
+            let viewBox = container.height() - offset;
+
+            //if offsetTop is beyond the displayed rows
+            if (line && (relativePos > viewBox)) {
+                container.scrollTop(relativePos - viewBox + container.scrollTop());
+            } else if (relativePos < 0) {
+                container.scrollTop(line.offsetTop);
+            }
+        }, 250);
     }])
 
     .controller('logBrowser', ['$scope', 'logBrowserSvc', function ($scope, logBrowserSvc) {
@@ -406,14 +424,13 @@ app
     .controller('logBrowserBrowser', ['$scope', 'logBrowserSvc', function ($scope, logBrowserSvc) {
 
         $('#log-line-container').scroll(function () {
-
-
-            console.log($('#log-line-container').scrollLeft());
-
             $('#log-line-header').css('left', $('#log-line-container').scrollLeft() * -1)
-
         });
 
+        /**
+         * Sort options
+         * @type {[*]}
+         */
         $scope.sortTypes = [
             {
                 name: 'Ingestion Timestamp',
@@ -436,6 +453,9 @@ app
 
         $scope.wrap = false;
 
+        /**
+         * Options for Line Slider
+         */
         $scope.sliderLines = {
             floor: 0,
             ceil: 1,
@@ -452,6 +472,9 @@ app
             rightToLeft: true
         };
 
+        /**
+         * Options for Page Size Slider
+         */
         $scope.sliderPageSize = {
             floor: 25,
             ceil: 250,
@@ -499,7 +522,7 @@ app
 
         let previousLine = 0;
 
-        let fillBuffer = function () {
+        let fillBuffer = function (callback) {
 
             let active = $scope.inMemoryEntries.position % $scope.pagination.pageSize;
 
@@ -532,6 +555,9 @@ app
 
                 index++;
             });
+
+            if (callback)
+                callback();
         };
 
         let loadBuffer = function (renew) {
@@ -665,7 +691,7 @@ app
 
                 $scope.sliderLines.ceil = $scope.pagination.total - 1;
 
-                fillBuffer()
+                fillBuffer();
             });
         }, 500);
 
@@ -705,6 +731,15 @@ app
         };
 
         logBrowserSvc.loadBuffer = loadBuffer;
+
+        /****************************************
+         * Watcher
+         ****************************************/
+
+        $scope.$watch('buffer', function (newBuffer, oldBuffer) {
+            logBrowserSvc.focusLine();
+        }, true);
+
     }])
 
     .controller('logBrowserSetting', ['$scope', 'logBrowserSvc', function ($scope, logBrowserSvc) {
@@ -724,7 +759,7 @@ app
             $scope.time.minutes.push(i)
         }
 
-        let today = moment().zone(0).startOf('day');
+        let today = moment().utcOffset(0).startOf('day');
 
         $scope.timeRanges = [{
             name: today.format('MMM, dddd DD') + ' (Today)',
@@ -733,7 +768,7 @@ app
 
         for (let i = 1; i < 31; i++) {
 
-            let day = moment(today).zone(0).subtract(i, 'days');
+            let day = moment(today).utcOffset(0).subtract(i, 'days');
 
             $scope.timeRanges.push({
                 name: day.format('MMM, dddd DD'),
@@ -748,8 +783,6 @@ app
         $scope.serverList = logBrowserSvc.serverList;
 
         $scope.fileList = logBrowserSvc.fileList;
-
-        $scope.buffer = [];
 
 
         $scope.serverSelectAll = () => {
@@ -807,9 +840,6 @@ app
         /**
          * Set Defaults
          */
-
-
-
         $scope.getServerTypes = () => {
             logBrowserSvc.getServerTypes(() => {
                 logBrowserSvc.getServers(() => {
