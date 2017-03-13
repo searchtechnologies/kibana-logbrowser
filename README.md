@@ -132,7 +132,7 @@
 For Kibana 5:
 
 ```
-kibana-plugin install https://github.com/searchtechnologies/kibana-logbrowser/releases/download/1.0.0/log_browser.zip 
+kibana-plugin install https://github.com/searchtechnologies/kibana-logbrowser/releases/download/1.0.1/log_browser.zip 
 ```
 
 # License
