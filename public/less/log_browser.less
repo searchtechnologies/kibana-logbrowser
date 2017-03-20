@@ -41,8 +41,16 @@
 
 .item-container {
   padding: 1em;
-  max-height: 36.5ex;
+  min-height: 7ex;
   overflow-y: auto;
+
+  @media (max-width: 1065px) {
+    max-height: ~"calc(100vh - 98ex)";
+  }
+
+  @media (max-width: 915px) {
+    max-height: ~"calc(100vh - 102ex)";
+  }
 
   a.item {
     color: #000;
