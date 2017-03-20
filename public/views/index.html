@@ -1,205 +1,218 @@
 <div class="container no-padding" ng-controller="logBrowser">
-  <tabset justified="true">
+    <tabset justified="true">
 
-    <tab heading="Choose Files to Browse" active="true">
+        <tab heading="Choose Files to Browse" active="true">
 
-      <div ng-controller="logBrowserSetting" style="padding: 0 1em">
+            <div ng-controller="logBrowserSetting" style="padding: 0 1em">
 
-        <div class="col-sm-12 bordered" style="margin-bottom: 3ex;">
+                <div class="col-sm-12 bordered" style="margin-bottom: 3ex;">
 
-          <div class="row table-header padded">
-            <label>Available Indexes:</label>
-          </div>
+                    <div class="row table-header padded">
+                        <label>Available Indexes:</label>
+                    </div>
 
-          <div class="row padded border-bottom">
-            <div class="form-inline col-sm-4">
-              <div class="form-group col-sm-12">
-                <label for="filterDate">Filter by Date:</label>
-                <select class="form-control" id="filterDate" ng-options="day as day.name for day in timeRanges"
-                        ng-model="options.date" style="width: auto;" ng-change="getIndices()">
-                </select>
-              </div>
-            </div>
+                    <div class="row padded border-bottom">
+                        <div class="form-inline col-sm-4">
+                            <div class="form-group col-sm-12">
+                                <label for="filterDate">Filter by Date:</label>
+                                <select class="form-control" id="filterDate"
+                                        ng-options="day as day.name for day in timeRanges"
+                                        ng-model="options.date" style="width: auto;" ng-change="getIndices()">
+                                </select>
+                            </div>
+                        </div>
 
-            <div class="form-inline col-sm-4">
+                        <div class="form-inline col-sm-4">
 
-              <div class="col-sm-6">
-                <label>Start:</label>
-                <div class="input-group">
+                            <div class="col-sm-6">
+                                <label>Start:</label>
+                                <div class="input-group">
                   <span class="input-group-addon">
                     <input type="checkbox" aria-label="..." ng-model="options.timeStart.use">
                   </span>
-                  <select class="form-control" style="width: auto;" ng-options="n as n for n in time.hours" ng-model="options.timeStart.hour"></select>
-                  <span class="input-group-addon" style="padding: 0 .25em;">
+                                    <select class="form-control" style="width: auto;"
+                                            ng-options="n as n for n in time.hours"
+                                            ng-model="options.timeStart.hour"></select>
+                                    <span class="input-group-addon" style="padding: 0 .25em;">
                     :
                   </span>
-                  <select class="form-control" style="width: auto;" ng-options="n as n for n in time.minutes" ng-model="options.timeStart.minute"></select>
-                </div>
-              </div>
+                                    <select class="form-control" style="width: auto;"
+                                            ng-options="n as n for n in time.minutes"
+                                            ng-model="options.timeStart.minute"></select>
+                                </div>
+                            </div>
 
 
-              <div class="col-sm-6">
-                <label>End:</label>
-                <div class="input-group">
+                            <div class="col-sm-6">
+                                <label>End:</label>
+                                <div class="input-group">
                   <span class="input-group-addon">
                     <input type="checkbox" aria-label="..." ng-model="options.timeEnd.use">
                   </span>
-                  <select class="form-control" style="width: auto;" ng-options="n as n for n in time.hours" ng-model="options.timeEnd.hour"></select>
-                  <span class="input-group-addon" style="padding: 0 .25em;">
+                                    <select class="form-control" style="width: auto;"
+                                            ng-options="n as n for n in time.hours"
+                                            ng-model="options.timeEnd.hour"></select>
+                                    <span class="input-group-addon" style="padding: 0 .25em;">
                     :
                   </span>
-                  <select class="form-control" style="width: auto;" ng-options="n as n for n in time.minutes" ng-model="options.timeEnd.minute"></select>
+                                    <select class="form-control" style="width: auto;"
+                                            ng-options="n as n for n in time.minutes"
+                                            ng-model="options.timeEnd.minute"></select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-inline col-sm-4 text-right">
+                            <div class="form-group ">
+                                <label for="indexName">Filter:</label>
+                                <input type="text" name="indexName" id="indexName" class="form-control"
+                                       placeholder="Enter name (wildcards OK)" ng-model="filterIndex"/>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="row padded">
+
+                            <form name="indexForm">
+                                <div class="form-group col-sm-12 text-center" ng-if="options.index">
+                                    <label for="indexSelected">Select Index:</label>
+                                    <select name="indexSelected" id="indexSelected" class="form-control"
+                                            ng-options="index.name for index in indices  | fltrSearch:'name':filterIndex"
+                                            ng-model="options.index" ng-change="getServerTypes()" style="width: auto; display: inline-block;"></select>
+                                </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
 
-            <div class="form-inline col-sm-4 text-right">
-              <div class="form-group ">
-                <label for="indexName">Filter:</label>
-                <input type="text" name="indexName" id="indexName" class="form-control"
-                       placeholder="Enter name (wildcards OK)" ng-model="filterIndex"/>
 
-              </div>
-            </div>
-          </div>
+                <div class="col-sm-12 bordered" style="margin-bottom: 3ex;">
 
-          <div class="row">
-            <div class="row padded">
-              <form name="indexForm">
-                <div class="row text-center">
-                  <label class="radio-inline" ng-repeat="index in indices  | fltrSearch:'name':filterIndex">
-                    <input name="indexSelected" type="radio" ng-value="index" ng-model="options.index"
-                           ng-change="getServerTypes()"> <span
-                    ng-bind="index.name"></span>
-                  </label>
+                    <div class="row table-header padded">
+                        <label>Choose Hosts:</label>
+                    </div>
+
+                    <div class="row padded border-bottom">
+                        <div class="form-inline col-sm-4">
+                            <div class="form-group">
+                                <label for="serverType">Server Type:</label>
+                                <select name="serverType" id="serverType" class="form-control"
+                                        ng-options="type as type.name for type in serverTypes"
+                                        ng-model="options.serverType"
+                                        ng-change="getServers()" style="width: auto;"></select>
+                            </div>
+                        </div>
+
+                        <div class="form-inline col-sm-4 text-center">
+                            <div class="btn-group" data-toggle="buttons">
+                                <button class="btn btn-default" ng-click="serverSelectAll()">
+                                    Select All
+                                </button>
+                                <button class="btn btn-default" ng-click="serverDeselectAll()">
+                                    Deselect All
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-inline col-sm-4 text-right">
+                            <div class="form-group ">
+                                <label for="serverName">Filter:</label>
+                                <input type="text" name="serverName" id="serverName" class="form-control"
+                                       placeholder="Enter name (wildcards OK)" ng-model="filterServer"/>
+
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                    <div class="row item-container">
+                        <item class="col-md-3 no-padding"
+                              ng-repeat="server in serverList | fltrSearch:'name':filterServer"
+                              item="server" list="options.servers" item-type="host"></item>
+                    </div>
                 </div>
-              </form>
-            </div>
-          </div>
-        </div>
 
+                <!-- Choose Files -->
+                <div class="col-sm-12 bordered" style="margin-bottom: 3ex;">
+                    <div class="row table-header padded">
+                        <label>Choose Files:</label>
+                    </div>
+                    <div class="row padded border-bottom">
+                        <div class="form-inline col-sm-4">
+                        </div>
 
-        <div class="col-sm-12 bordered" style="margin-bottom: 3ex;">
+                        <div class="form-inline col-sm-4 text-center">
+                            <div class="btn-group" data-toggle="buttons">
+                                <button class="btn btn-default" ng-click="fileSelectAll()">
+                                    Select All
+                                </button>
+                                <button class="btn btn-default" ng-click="fileDeselectAll(0)">
+                                    Deselect All
+                                </button>
+                            </div>
+                        </div>
 
-          <div class="row table-header padded">
-            <label>Choose Hosts:</label>
-          </div>
+                        <div class="form-inline col-sm-4 text-right">
 
-          <div class="row padded border-bottom">
-            <div class="form-inline col-sm-4">
-              <div class="form-group">
-                <label for="serverType">Server Type:</label>
-                <select name="serverType" id="serverType" class="form-control"
-                        ng-options="type as type.name for type in serverTypes" ng-model="options.serverType"
-                        ng-change="getServers()" style="width: auto;"></select>
-              </div>
-            </div>
-
-            <div class="form-inline col-sm-4 text-center">
-              <div class="btn-group" data-toggle="buttons">
-                <button class="btn btn-default" ng-click="serverSelectAll()">
-                  Select All
-                </button>
-                <button class="btn btn-default" ng-click="serverDeselectAll()">
-                  Deselect All
-                </button>
-              </div>
-            </div>
-
-            <div class="form-inline col-sm-4 text-right">
-              <div class="form-group ">
-                <label for="serverName">Filter:</label>
-                <input type="text" name="serverName" id="serverName" class="form-control"
-                       placeholder="Enter name (wildcards OK)" ng-model="filterServer"/>
-
-              </div>
+                            <div class="form-group">
+                                <label for="fileName">Filter:</label>
+                                <input type="text" name="fileName" id="fileName" class="form-control"
+                                       placeholder="Enter name (wildcards OK)" ng-model="filterFile"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row item-container">
+                        <item class="col-sm-6 no-padding" ng-repeat="file in fileList | fltrSearch:'name':filterFile"
+                              item="file"
+                              list="options.files" item-type="file"></item>
+                    </div>
+                </div>
             </div>
 
 
-          </div>
+        </tab>
 
-          <div class="row item-container">
-            <item class="col-md-3 no-padding" ng-repeat="server in serverList | fltrSearch:'name':filterServer"
-                  item="server" list="options.servers" item-type="host"></item>
-          </div>
-        </div>
+        <tab heading="Browse Selected Files" select="loadBrowse()" disabled="!options.index">
 
-        <!-- Choose Files -->
-        <div class="col-sm-12 bordered" style="margin-bottom: 3ex;">
-          <div class="row table-header padded">
-            <label>Choose Files:</label>
-          </div>
-          <div class="row padded border-bottom">
-            <div class="form-inline col-sm-4">
-            </div>
+            <div ng-controller="logBrowserBrowser">
 
-            <div class="form-inline col-sm-4 text-center">
-              <div class="btn-group" data-toggle="buttons">
-                <button class="btn btn-default" ng-click="fileSelectAll()">
-                  Select All
-                </button>
-                <button class="btn btn-default" ng-click="fileDeselectAll(0)">
-                  Deselect All
-                </button>
-              </div>
-            </div>
+                <div class="row log-controls">
+                    <div class="form-inline text-right" style="width: 19em;">
+                        <div class="form-group">
+                            <label>Sort:</label>
+                            <select class="form-control" ng-options="sort as sort.name for sort in sortTypes"
+                                    ng-model="pagination.sortType" style="width: auto" ng-change="getAllLogPages()"
+                                    ng-disabled="options.loading">
+                            </select>
+                        </div>
+                    </div>
 
-            <div class="form-inline col-sm-4 text-right">
+                    <div class="btn-group" style="width: 19em;" role="group" aria-label="...">
+                        <button type="button" class="btn btn-default" data-toggle="button" ng-class="{active: wrap}"
+                                ng-click="toogleWrap()" ng-disabled="options.loading">
+                            <i class="fa" ng-class="{'fa-check-circle': wrap, 'fa-circle-o': !wrap}"
+                               aria-hidden="true"></i> Wrap
+                        </button>
+                        <button type="button" class="btn btn-default" data-toggle="button"
+                                ng-class="{active: pagination.onlyMatchLines}"
+                                ng-click="toggleOnlyMatchLines()"
+                                ng-disabled="pagination.currentMatch === -1 || options.loading">
+                            <i class="fa"
+                               ng-class="{'fa-check-circle': pagination.onlyMatchLines, 'fa-circle-o': !pagination.onlyMatchLines}"
+                               aria-hidden="true"></i> Only Matches
+                        </button>
+                    </div>
 
-              <div class="form-group">
-                <label for="fileName">Filter:</label>
-                <input type="text" name="fileName" id="fileName" class="form-control"
-                       placeholder="Enter name (wildcards OK)" ng-model="filterFile"/>
-              </div>
-            </div>
-          </div>
-          <div class="row item-container">
-            <item class="col-sm-6 no-padding" ng-repeat="file in fileList | fltrSearch:'name':filterFile" item="file"
-                  list="options.files" item-type="file"></item>
-          </div>
-        </div>
-      </div>
-
-
-    </tab>
-
-    <tab heading="Browse Selected Files" select="loadBrowse()" disabled="!options.index">
-
-      <div ng-controller="logBrowserBrowser">
-
-        <div class="row log-controls">
-          <div class="form-inline text-right" style="width: 19em;">
-            <div class="form-group">
-              <label>Sort:</label>
-              <select class="form-control" ng-options="sort as sort.name for sort in sortTypes"
-                      ng-model="pagination.sortType" style="width: auto" ng-change="getAllLogPages()" ng-disabled="options.loading">
-              </select>
-            </div>
-          </div>
-
-          <div class="btn-group" style="width: 19em;" role="group" aria-label="...">
-            <button type="button" class="btn btn-default" data-toggle="button" ng-class="{active: wrap}"
-                    ng-click="toogleWrap()" ng-disabled="options.loading">
-              <i class="fa" ng-class="{'fa-check-circle': wrap, 'fa-circle-o': !wrap}" aria-hidden="true"></i> Wrap
-            </button>
-            <button type="button" class="btn btn-default" data-toggle="button"
-                    ng-class="{active: pagination.onlyMatchLines}"
-                    ng-click="toggleOnlyMatchLines()"
-                    ng-disabled="pagination.currentMatch === -1 || options.loading">
-              <i class="fa"
-                 ng-class="{'fa-check-circle': pagination.onlyMatchLines, 'fa-circle-o': !pagination.onlyMatchLines}"
-                 aria-hidden="true"></i> Only Matches
-            </button>
-          </div>
-
-          <div class="form-inline text-center" style="width: 31em;">
-            <div class="form-group">
-              <label for="fileName">Find in File:</label>
-              <div class="input-group">
-                <input type="text" name="fileName" class="form-control"
-                       placeholder="Enter name (wildcards OK)" ng-model="pagination.query"
-                       ng-change="debouncedFindMatches()" ng-disabled="options.loading"/>
-                <span class="input-group-btn text-left">
+                    <div class="form-inline text-center" style="width: 31em;">
+                        <div class="form-group">
+                            <label for="fileName">Find in File:</label>
+                            <div class="input-group">
+                                <input type="text" name="fileName" class="form-control"
+                                       placeholder="Enter name (wildcards OK)" ng-model="pagination.query"
+                                       ng-change="debouncedFindMatches()" ng-disabled="options.loading"/>
+                                <span class="input-group-btn text-left">
                   <button class="btn btn-primary" ng-click="findOneNext(pagination.currentMatch + 1)"
                           ng-disabled="pagination.currentMatch === -1 || options.loading">
                     <span class="glyphicon glyphicon-chevron-down"></span>
@@ -210,69 +223,74 @@
                   </button>
                 </span>
 
-              </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-offset-3 col-sm-8 text-left">
+                            <i class="control-label" ng-show="pagination.totalMatches > 0"> {{pagination.currentMatch + 1}} of
+                                {{pagination.totalMatches}}</i>
+                        </div>
+                    </div>
+
+                    <div class="text-center" style="width: 40em;">
+                        <pagination-logger items-per-page="1" page-size="pagination.pageSize"
+                                           total-items="pagination.total"
+                                           ng-model="pagination.line" max-size="pagination.maxSize"
+                                           class="pagination-sm"
+                                           boundary-links="true" ng-change="loadMore()"
+                                           is-disabled="options.loading"></pagination-logger>
+                    </div>
+
+                    <div class="form-inline text-left">
+                        <div class="form-group">
+                            <label>Page Size: </label>
+                            <div style="display: inline-block; width: 25em; padding-top: .5ex;">
+                                <rzslider rz-slider-model="pagination.pageSize"
+                                          rz-slider-options="sliderPageSize"></rzslider>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Log Lines -->
+
+                <div class="log-display">
+                    <div class="log-container col-sm-12 no-padding">
+
+                        <div id="log-line-header" class="log-line header">
+                            <span class="timestamp text-center">Ingestion Timestamp</span>
+                            <span class="timestamp text-center">File Timestamp</span>
+                            <span class="host text-center">Host</span>
+                            <span class="log">Log Message</span>
+                        </div>
+
+                        <div id="log-line-container" class="log-line-container col-sm-12 no-padding">
+
+                            <div class="text-center" ng-if="options.loading" style="padding: 2ex 0;">
+                                <i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><span
+                                    style="font-size: 23pt; margin-left: .25em;">Loading Log Entries</span>
+                            </div>
+
+                            <div ng-repeat="entry in buffer track by entry.id" class="log-line"
+                                 ng-class="{current: entry.active, wrap: !wrap, unwrap: wrap}" ng-show="entry.message">
+                                <span class="timestamp" ng-bind="entry.timestamp"></span>
+                                <span class="timestamp" ng-bind="entry.log_time"></span>
+                                <span class="host" tooltip="{{entry.host}}" ng-bind="entry.host"></span>
+                                <span class="log" ng-bind-html="entry.message | to_trusted"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-1 log-container-slider no-padding text-right">
+                        <rzslider rz-slider-model="pagination.line" rz-slider-options="sliderLines"></rzslider>
+                    </div>
+                </div>
+
+
             </div>
-            <div class="col-sm-offset-3 col-sm-8 text-left">
-              <i class="control-label" ng-show="pagination.totalMatches > 0"> {{pagination.currentMatch + 1}} of
-                {{pagination.totalMatches}}</i>
-            </div>
-          </div>
 
-          <div class="text-center" style="width: 40em;">
-            <pagination-logger items-per-page="1" page-size="pagination.pageSize" total-items="pagination.total"
-                               ng-model="pagination.line" max-size="pagination.maxSize" class="pagination-sm"
-                               boundary-links="true" ng-change="loadMore()" is-disabled="options.loading"></pagination-logger>
-          </div>
-
-          <div class="form-inline text-left">
-            <div class="form-group">
-              <label>Page Size: </label>
-              <div style="display: inline-block; width: 25em; padding-top: .5ex;">
-                <rzslider rz-slider-model="pagination.pageSize" rz-slider-options="sliderPageSize"></rzslider>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Log Lines -->
-
-        <div class="log-display">
-          <div class="log-container col-sm-12 no-padding">
-
-            <div id="log-line-header" class="log-line header">
-              <span class="timestamp text-center">Ingestion Timestamp</span>
-              <span class="timestamp text-center">File Timestamp</span>
-              <span class="host text-center">Host</span>
-              <span class="log">Log Message</span>
-            </div>
-
-            <div id="log-line-container" class="log-line-container col-sm-12 no-padding">
-
-              <div class="text-center" ng-if="options.loading" style="padding: 2ex 0;">
-                <i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><span style="font-size: 23pt; margin-left: .25em;">Loading Log Entries</span>
-              </div>
-
-              <div ng-repeat="entry in buffer track by entry.id" class="log-line"
-                   ng-class="{current: entry.active, wrap: !wrap, unwrap: wrap}" ng-show="entry.message">
-                <span class="timestamp" ng-bind="entry.timestamp"></span>
-                <span class="timestamp" ng-bind="entry.log_time"></span>
-                <span class="host" tooltip="{{entry.host}}" ng-bind="entry.host"></span>
-                <span class="log" ng-bind-html="entry.message | to_trusted"></span>
-              </div>
-            </div>
-          </div>
-          <div class="col-sm-1 log-container-slider no-padding text-right">
-            <rzslider rz-slider-model="pagination.line" rz-slider-options="sliderLines"></rzslider>
-          </div>
-        </div>
+        </tab>
 
 
-      </div>
-
-    </tab>
-
-
-  </tabset>
+    </tabset>
 </div>
 

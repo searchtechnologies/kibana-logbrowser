@@ -342,7 +342,8 @@ export default function (server, options) {
                     aggregations: {
                         types: {
                             terms: {
-                                field: 'type'
+                                field: 'type',
+                                size: 1000
                             }
                         }
                     }
@@ -380,7 +381,8 @@ export default function (server, options) {
                     aggregations: {
                         hosts: {
                             terms: {
-                                field: "host"
+                                field: "host",
+                                size: 1000
                             }
                         }
                     }
@@ -426,7 +428,8 @@ export default function (server, options) {
                     aggregations: {
                         paths: {
                             terms: {
-                                field: "source"
+                                field: "source",
+                                size: 1000
                             }
                         }
                     }
