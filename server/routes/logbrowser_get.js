@@ -1,305 +1,13 @@
-import fs from "fs";
-import path from "path";
-import moment from "moment";
-import _ from "lodash";
-//import request from 'sync-request';
-//let utils = require('requirefrom')('src/utils');
-//let fromRoot = utils('fromRoot');
+import moment from 'moment';
+import api from '../lib/api';
 
 export default function (server, options) {
-
     /**
      * Fileds to retrieve
      */
-    const retrieveFields = ['message', '@timestamp', 'host', 'log_time'];
     const dataCluster = server.plugins.elasticsearch.getCluster('data');
     const call = dataCluster.callWithInternalUser;
-    //const client = server.plugins.elasticsearch.client;
     const basePath = server.config().get('server.basePath');
-
-    /***********************************************
-     * Server Side Functions
-     ***********************************************/
-
-    const getFilePath = function (fileName) {
-        //TODO: for testing return path.join('C:\\dev\\Kibana\\Kibana plugin env', '\\filesIds', fileName);
-        return path.join(__dirname, '..\\filesIds', fileName);
-    };
-
-    /**
-     *  Write ids in to a file
-     *
-     * @param ids
-     */
-    const writeToFileIds = function (ids, name) {
-
-        let idsString = ids.toString().replace(/,/g, '\n');
-
-        let file = getFilePath(name);
-
-        fs.appendFileSync(file, idsString + '\n');
-
-    };
-
-    const deleteFile = function (name) {
-
-        var file = getFilePath(name);
-
-        fs.exists(file, (exists) => {
-            if (exists) {
-                fs.unlinkSync(file);
-            } else {
-                try {
-                    fs.mkdirSync(path.dirname(file), (err) => {
-                        if (err) throw err;
-                    });
-                } catch (e) {
-                    if (e.code != 'EEXIST') throw e;
-                }
-            }
-        });
-    };
-
-    const parseLogLinesIds = function (log_lines, fileName) {
-        let ids = [];
-
-        log_lines.forEach(function (obj) {
-            ids.push(obj._id);
-        });
-
-        if (ids.length > 0)
-            writeToFileIds(ids, fileName);
-    };
-
-    const parseLogLines = function (log_lines) {
-
-        let lines = [];
-
-        log_lines.forEach(function (obj) {
-
-            let time = _.isArray(obj._source['@timestamp']) ? obj._source['@timestamp'][0] : obj._source['@timestamp'];
-
-            let line = {
-                id: obj._id,
-                message: _.isArray(obj._source.message) ? obj._source.message[0] : obj._source.message,
-                timestamp: time,
-                host: _.isArray(obj._source.host) ? obj._source.host[0] : obj._source.host
-            };
-
-            if (obj._source.log_time)
-                line.log_time = _.isArray(obj._source.log_time) ? obj._source.log_time[0] : obj._source.log_time;
-
-            if (obj.highlight && obj.highlight.message && obj.highlight.message.length > 0) {
-                line.message = _.isArray(obj.highlight.message) ? obj.highlight.message[0] : obj.highlight.message;
-            }
-
-            lines.push(line);
-        });
-
-
-        return lines;
-    };
-
-    /**
-     *
-     * @param matchNum Number of the match line
-     * @param fileName File name with the lines
-     * @param matchFileName File name with the matches only
-     * @param matchOnly Should only show matches
-     * @returns {{position: number, total: Number}}
-     */
-    const getLine = function (matchNum, fileName, matchFileName, matchOnly) {
-
-        var file = getFilePath(fileName);
-        var matchFile = getFilePath(matchFileName);
-
-        var results = fs.readFileSync(file, 'utf8');
-        var matches = fs.readFileSync(matchFile, 'utf8');
-
-        var resultLines = results.split('\n');
-        resultLines.pop();
-
-        var matchLines = matches.split('\n');
-        matchLines.pop();
-
-        return {
-            position: resultLines.indexOf(matchLines[matchNum]),
-            total: matchOnly ? matchLines.length : resultLines.length
-        };
-    };
-
-    const getPage = function (pageNum, size, fileName) {
-
-        size = parseInt(size);
-
-        if (pageNum !== undefined && !Array.isArray(pageNum)) {
-            pageNum = [pageNum];
-        }
-
-        var file = getFilePath(fileName);
-
-        var data;
-
-        try {
-            data = fs.readFileSync(file, 'utf8');
-        } catch (err) {
-            throw new Error('No results to show');
-        }
-        var lines = data.split('\n');
-        lines.pop();
-
-        var ids = [];
-
-        pageNum = pageNum.filter(function (elem, index, self) {
-            return index == self.indexOf(elem);
-        });
-
-        pageNum.forEach((num, i) => {
-
-            num = parseInt(num);
-
-            num = num < 0 ? 0 : num;
-
-            var totalPages = Math.ceil(lines.length / size) - 1;
-
-            num = num >= totalPages ? totalPages : num;
-
-            if (num > lines.length) {
-                throw new Error('File end reached without finding line');
-            }
-
-            var top = (num * size + size);
-
-            top = top > lines.length ? lines.length : top;
-
-            for (let i = num * size; i < top; i++) {
-                ids.push(lines[i]);
-            }
-        });
-
-        return {
-            ids: ids,
-            total: lines.length
-        };
-    };
-
-    const requestMorePages = function (scrollId, fileName, callback) {
-
-        let config = {
-            scrollId: scrollId,
-            scroll: '5s'
-        };
-
-        call('scroll', config).then(function (resp) {
-            /*if (error) {
-             reply({
-             error: error
-             });
-
-             return;
-             }*/
-
-            if (resp.hits.hits.length > 0) {
-                parseLogLinesIds(resp.hits.hits, fileName);
-                requestMorePages(resp._scroll_id, fileName, callback);
-
-            } else {
-                callback();
-            }
-        });
-    };
-
-    const requestPageHandler = function (req, reply) {
-
-        let fileToUse = 'fileIds' + req.query.timestamp + '.txt';
-
-        if (req.query.onlyMatchLines !== 'false') {
-            fileToUse = 'matches' + req.query.timestamp + '.txt'
-        }
-
-        let page;
-
-        try {
-            page = getPage(req.query.page || [0], req.query.pageSize, fileToUse);
-        } catch (error) {
-
-            reply({
-                error: {
-                    msg: error.toString().replace('Error: ', '')
-                }
-            });
-            return;
-        }
-
-        let config = {
-            index: req.query.index,
-            body: {
-                sort: [],
-                size: req.query.pageSize * req.query.page.length,
-                _source: retrieveFields,
-                query: {
-                    ids: {
-                        values: page.ids
-                    }
-                }
-            }
-        };
-
-        if (req.query.query) {
-            config.body.highlight = {
-                "fields": {
-                    "message": {
-                        "number_of_fragments": 1,
-                        "fragment_size": 2000,
-                        "highlight_query": {
-                            "query_string": {
-                                "default_field": "message",
-                                "query": req.query.query || ''
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        config.body.sort.push(getSort(req.query.sortType));
-
-        call('search', config).then(function (resp) {
-
-            /*if (error) {
-             reply({
-             error: error
-             });
-
-             return;
-             }*/
-
-            let lines = parseLogLines(resp.hits.hits);
-
-            let result = {
-                lines: lines,
-                total: page.total
-            };
-
-            reply(result);
-        });
-
-    };
-
-    const getSort = function (type) {
-
-        let sortType = {};
-
-        sortType[type] = {
-            "order": "asc"
-        };
-
-        return sortType;
-    };
-
-    /***********************************************
-     * Plugin Routes
-     ***********************************************/
 
     server.route({
         path: '/api/log_browser',
@@ -472,7 +180,7 @@ export default function (server, options) {
         path: '/api/log_browser/browse',
         method: 'GET',
         handler(req, reply) {
-            requestPageHandler(req, reply);
+            api.requestPageHandler(req, reply);
         }
     });
 
@@ -543,7 +251,7 @@ export default function (server, options) {
                 config.body.query.bool.must.push({"match": {"type": req.query.serverType}});
             }
 
-            config.body.sort.push(getSort(req.query.sortType));
+            config.body.sort.push(api.getSort(req.query.sortType));
 
             //Convert Times to JSON
             req.query.startTime = JSON.parse(req.query.startTime);
@@ -571,7 +279,7 @@ export default function (server, options) {
                 }
             }
 
-            deleteFile(fileName);
+            api.deleteFile(fileName);
 
             call('search', config).then(function (resp) {
 
@@ -585,11 +293,11 @@ export default function (server, options) {
 
                 if (resp.hits.hits.length > 0) {
 
-                    parseLogLinesIds(resp.hits.hits, fileName);
+                    api.parseLogLinesIds(resp.hits.hits, fileName);
 
                     if (resp._scroll_id) {
 
-                        requestMorePages(resp._scroll_id, fileName, function () {
+                        api.requestMorePages(resp._scroll_id, fileName, function () {
 
                             let result = {
                                 total: resp.hits.total
@@ -698,7 +406,7 @@ export default function (server, options) {
                 });
             }
 
-            config.body.sort.push(getSort(req.query.sortType));
+            config.body.sort.push(api.getSort(req.query.sortType));
 
             //Convert Times to JSON
             req.query.startTime = JSON.parse(req.query.startTime);
@@ -708,12 +416,12 @@ export default function (server, options) {
             if (req.query.startTime.use || req.query.endTime.use) {
 
                 config.body.query.bool.filter = {
-                        "range": {
-                            "@timestamp": {
-                                "format": "yyyy-MM-dd'T'HH:mm:ss"
-                            }
+                    "range": {
+                        "@timestamp": {
+                            "format": "yyyy-MM-dd'T'HH:mm:ss"
                         }
-                    };
+                    }
+                };
 
                 let date = moment(new Date(req.query.date)).format('YYYY-MM-DD') + 'T';
 
@@ -726,7 +434,7 @@ export default function (server, options) {
                 }
             }
 
-            deleteFile(fileName);
+            api.deleteFile(fileName);
 
             call('search', config).then(function (resp) {
 
@@ -740,11 +448,11 @@ export default function (server, options) {
 
                 if (resp.hits.hits.length > 0) {
 
-                    parseLogLinesIds(resp.hits.hits, fileName);
+                    api.parseLogLinesIds(resp.hits.hits, fileName);
 
                     if (resp._scroll_id) {
 
-                        requestMorePages(resp._scroll_id, fileName, function () {
+                        api.requestMorePages(resp._scroll_id, fileName, function () {
 
                             let result = {
                                 total: resp.hits.total
@@ -775,7 +483,7 @@ export default function (server, options) {
                 fileToUse = 'matches' + req.query.timestamp + '.txt'
             }
 
-            reply(getLine(req.query.match, fileToUse, 'matches' + req.query.timestamp + '.txt'));
+            reply(api.getLine(req.query.match, fileToUse, 'matches' + req.query.timestamp + '.txt'));
         }
-    })
-};
+    });
+}
