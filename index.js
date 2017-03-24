@@ -1,4 +1,4 @@
-import api from "./server/api";
+import logbrowser_get from './server/routes/logbrowser_get';
 
 export default function (kibana) {
     return new kibana.Plugin({
@@ -12,7 +12,7 @@ export default function (kibana) {
             }
         },
         init(server, options) {
-            api(server, options);
+            logbrowser_get(server, options);
         }
     });
 };
